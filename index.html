@@ -1,0 +1,1839 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fluence</title>
+<meta name="description" content="Relire le même texte pour lire plus vite : lecture chronométrée avec un adulte, courbe des mots lus par minute.">
+<meta name="theme-color" content="#FFF4FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1E1933" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fluence">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preload" href="fonts/fredoka-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/* ==========================================================================
+   Charte commune des applis de Marc — v1 (1er novembre 2026)
+   À coller en haut du <style> de chaque index.html (pas de fichier externe :
+   chaque appli reste un seul index.html). Voir charte.md pour les règles.
+   Polices : copier design/fonts/ dans le dossier fonts/ de l'appli.
+   ========================================================================== */
+
+@font-face { font-family: 'Fredoka'; font-style: normal; font-weight: 300 700; font-display: swap; src: url('fonts/fredoka-latin.woff2') format('woff2'); }
+@font-face { font-family: 'Nunito'; font-style: normal; font-weight: 200 1000; font-display: swap; src: url('fonts/nunito-latin.woff2') format('woff2'); }
+
+/* ---------- 1. Jetons (couleurs, formes, polices) ---------- */
+:root {
+  color-scheme: light dark;
+
+  /* Fond et surfaces */
+  --bg: #FFF4FA;            /* haut du dégradé de fond (rose très pâle) */
+  --bg2: #EEF4FF;           /* bas du dégradé (bleu très pâle) */
+  --surface: #FFFFFF;       /* cartes, bulles, boutons doux */
+  --surface2: #F4F1FF;      /* touches du clavier, zones calmes */
+  --track: #E4DEF7;         /* fond des barres de progression */
+
+  /* Encre : même violet nuit que le contour des 30 personnages */
+  --ink: #2B2340;           /* texte */
+  --muted: #6B6190;         /* texte secondaire */
+  --line: #2B2340;          /* contours et ombres dures */
+
+  /* Rôles de couleur (un rôle = une couleur, dans toutes les applis) */
+  --action: #3B5BFF;        /* LE bouton principal (Commencer, Valider, Suivant) */
+  --on-action: #FFFFFF;
+  --pompon: #FF6FA5;        /* rose de Pompon : cœurs, « Nouveau », bouton ▶ de l'accueil */
+  --on-pompon: #FFFFFF;
+  --sun: #FFD45C;           /* étoiles, récompenses, astuces, focus clavier */
+  --on-sun: #2B2340;
+  --good: #2BC48A;          /* bonne réponse, OK */
+  --on-good: #0B2E20;
+  --tint-good: #D8F6E8;     /* carte réussie */
+  --retry: #FFB38A;         /* « à retenter » (jamais de rouge) */
+  --tint-retry: #FFE4D6;    /* carte à retenter */
+
+  /* 6 pastels (pastilles A-F, cartes de l'accueil, zones de carte) */
+  --p-rose: #FFD2E3;
+  --p-soleil: #FFE9A3;
+  --p-menthe: #C6F1E2;
+  --p-lilas: #E0D6FF;
+  --p-ciel: #CDEBFF;
+  --p-peche: #FFDCC8;
+
+  /* 6 couleurs vives (icônes, personnages, confettis) */
+  --v-rose: #FF6FA5;
+  --v-soleil: #FFD45C;
+  --v-menthe: #8EE3C8;
+  --v-lilas: #C9B6FF;
+  --v-ciel: #9AD7FF;
+  --v-peche: #FFB38A;
+
+  /* Lecture (applis de français) */
+  --syl-a: #2F4FE0;         /* syllabes alternées : bleu… */
+  --syl-b: #C92A62;         /* …et framboise */
+  --muette: #A39DB8;        /* lettre muette grisée */
+  --son-cle: #FFE9A3;       /* fond de la lettre qui décide du son */
+  --ligne-b: #EEF1FF;       /* une ligne sur deux */
+
+  /* Polices */
+  --display: 'Fredoka', 'Trebuchet MS', system-ui, sans-serif;  /* titres, boutons, chiffres */
+  --body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif; /* texte */
+  --lecture: 'Nunito', Arial, sans-serif;                        /* texte à lire */
+
+  /* Formes */
+  --bord: 3px;
+  --r-carte: 28px;
+  --r-btn: 22px;
+  --r-touche: 18px;
+  --r-pastille: 999px;
+  --ombre: 0 5px 0 var(--line);
+  --ombre-carte: 0 6px 0 var(--line);
+  --toucher: 56px;          /* hauteur mini d'un bouton */
+
+  /* Mouvement */
+  --ressort: cubic-bezier(.3, 1.6, .5, 1);
+  --deco: .55;              /* opacité des petits dessins de fond */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1E1933;
+    --bg2: #171B36;
+    --surface: #2B2448;
+    --surface2: #352D57;
+    --track: #3D3466;
+    --ink: #FBEFFF;
+    --muted: #C3B7E8;
+    --line: #120E22;        /* le contour reste sombre, même la nuit */
+    --action: #7F98FF;
+    --on-action: #120E22;
+    --pompon: #FF8DB9;
+    --on-pompon: #2A0F1E;
+    --good: #3DDC97;
+    --tint-good: #1D4A3D;
+    --retry: #FF9F7A;
+    --tint-retry: #5A3326;
+    --p-rose: #5A3552;
+    --p-soleil: #5A4A24;
+    --p-menthe: #24504A;
+    --p-lilas: #433A72;
+    --p-ciel: #283F68;
+    --p-peche: #5A3A2E;
+    --syl-a: #9DB0FF;
+    --syl-b: #FF8DB4;
+    --muette: #7D7499;
+    --son-cle: #5A4A24;
+    --ligne-b: #262046;
+    --deco: .25;
+  }
+}
+
+/* ---------- 2. Base ---------- */
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; background: var(--bg2); }
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: linear-gradient(170deg, var(--bg) 0%, var(--bg2) 100%) no-repeat;
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.45;
+  overflow-x: hidden;
+}
+button, input, select { font: inherit; color: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 4px solid var(--sun); outline-offset: 3px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.1; margin: 0; }
+h1 { font-size: clamp(1.6rem, 7vw, 2.4rem); }
+h2 { font-size: 1.4rem; }
+.wrap {
+  max-width: 560px; margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- 3. En-tête commun : 🏠 · titre · ⚙ ---------- */
+.entete { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.entete .titre { flex: 1; min-width: 0; font-family: var(--display); font-weight: 700; font-size: 1.25rem; text-align: center; }
+.rond {                    /* bouton rond (🏠, ⚙, ✕, son) */
+  flex: none; width: 48px; height: 48px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 22px; text-decoration: none; color: var(--ink);
+  background: var(--surface); border: var(--bord) solid var(--line); box-shadow: 0 4px 0 var(--line); cursor: pointer;
+}
+.rond:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line); }
+
+/* ---------- 4. Boutons ---------- */
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: var(--toucher); padding: 10px 22px;
+  font: 600 1.2rem var(--display); text-decoration: none;
+  color: var(--ink); background: var(--surface);
+  border: var(--bord) solid var(--line); border-radius: var(--r-btn);
+  box-shadow: var(--ombre); cursor: pointer;
+  transition: transform .1s ease, box-shadow .1s ease;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--line); }
+.btn:disabled { opacity: .45; cursor: default; transform: none; box-shadow: var(--ombre); }
+.btn-action { background: var(--action); color: var(--on-action); }   /* un seul par écran */
+.btn-soleil { background: var(--sun); color: var(--on-sun); }         /* bonus, installer */
+.btn-ok { background: var(--good); color: var(--on-good); }
+.btn-petit { width: auto; min-height: 44px; padding: 6px 16px; font-size: 1rem; border-radius: var(--r-pastille); box-shadow: 0 4px 0 var(--line); }
+
+/* ---------- 5. Cartes, bulles, pastilles ---------- */
+.carte {
+  background: var(--surface); border: var(--bord) solid var(--line);
+  border-radius: var(--r-carte); box-shadow: var(--ombre-carte); padding: 20px;
+}
+.carte.reussie { background: var(--tint-good); }
+.carte.a-retenter { background: var(--tint-retry); }
+.bulle {                   /* bulle de dialogue d'un personnage */
+  position: relative; background: var(--surface); border: var(--bord) solid var(--line);
+  border-radius: 26px; box-shadow: var(--ombre); padding: 12px 16px;
+}
+.pastille {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 2px 12px;
+  border: 2px solid var(--line); border-radius: var(--r-pastille);
+  background: var(--surface); font: 700 .9rem var(--body); white-space: nowrap;
+}
+.pastille.soleil { background: var(--p-soleil); }
+.pastille.rose { background: var(--p-rose); }
+.pastille.menthe { background: var(--p-menthe); }
+.badge-nouveau {
+  display: inline-block; background: var(--sun); color: var(--on-sun);
+  border: var(--bord) solid var(--line); border-radius: var(--r-pastille);
+  padding: 1px 10px 2px; font: 700 .85rem var(--display); transform: rotate(4deg);
+}
+.etiquette { font: 800 .75rem var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.astuce {
+  background: var(--sun); color: var(--on-sun); border-radius: 18px;
+  padding: 10px 14px; font-weight: 700;
+}
+.astuce::before { content: '💡 '; }
+
+/* ---------- 6. Progression ---------- */
+.barre { height: 18px; border: var(--bord) solid var(--line); border-radius: var(--r-pastille); background: var(--track); overflow: hidden; }
+.barre > i { display: block; height: 100%; width: 0; background: var(--good); border-radius: inherit; transition: width .4s var(--ressort); }
+
+/* ---------- 7. Choix A-F (QCM) et clavier ---------- */
+.choix {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--toucher);
+  padding: 8px 14px; text-align: left; font: 600 1.1rem var(--display);
+  background: var(--surface); border: var(--bord) solid var(--line);
+  border-radius: var(--r-touche); box-shadow: 0 4px 0 var(--line); cursor: pointer;
+}
+.choix:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line); }
+.choix .lettre {
+  flex: none; width: 30px; height: 30px; display: grid; place-items: center;
+  border: 2px solid var(--line); border-radius: 10px; font-size: .9rem; background: var(--p-lilas);
+}
+.choix:nth-child(6n+1) .lettre { background: var(--p-rose); }
+.choix:nth-child(6n+2) .lettre { background: var(--p-soleil); }
+.choix:nth-child(6n+3) .lettre { background: var(--p-menthe); }
+.choix:nth-child(6n+4) .lettre { background: var(--p-lilas); }
+.choix:nth-child(6n+5) .lettre { background: var(--p-peche); }
+.choix:nth-child(6n+6) .lettre { background: var(--p-ciel); }
+.choix.bon { background: var(--tint-good); }
+.choix.a-revoir { background: var(--tint-retry); }
+.touche {
+  min-height: 64px; font: 600 1.8rem var(--display);
+  background: var(--surface); border: var(--bord) solid var(--line);
+  border-radius: var(--r-touche); box-shadow: 0 4px 0 var(--line); cursor: pointer;
+}
+.touche:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line); }
+.touche.douce { background: var(--surface2); }
+.touche.ok { background: var(--good); color: var(--on-good); }
+
+/* ---------- 8. Réglages : interrupteur ---------- */
+.interrupteur { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: var(--toucher); font-weight: 700; cursor: pointer; }
+.interrupteur input { appearance: none; flex: none; width: 58px; height: 34px; margin: 0; border: var(--bord) solid var(--line); border-radius: var(--r-pastille); background: var(--track); position: relative; cursor: pointer; transition: background .2s; }
+.interrupteur input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); border: 2px solid var(--line); transition: transform .2s var(--ressort); }
+.interrupteur input:checked { background: var(--good); }
+.interrupteur input:checked::after { transform: translateX(24px); }
+
+/* ---------- 9. Texte à lire (applis de français) ---------- */
+.texte-lecture {
+  font-family: var(--lecture); font-size: 22px; font-weight: 600; line-height: 2;
+  letter-spacing: .02em; word-spacing: .12em; max-width: 34ch;
+}
+.texte-lecture .ligne { display: block; padding: 0 10px; border-radius: 10px; }
+.texte-lecture .ligne:nth-child(even) { background: var(--ligne-b); }
+.syl-a { color: var(--syl-a); }
+.syl-b { color: var(--syl-b); }
+.muette { color: var(--muette); }
+.son-cle { background: var(--son-cle); border-radius: 6px; box-shadow: 0 0 0 2px var(--son-cle); }
+
+/* ---------- 10. Animations (désactivables) ---------- */
+@keyframes apparait { from { transform: scale(.85); opacity: 0; } }
+@keyframes bravo { 0% { transform: scale(1); } 30% { transform: scale(1.08) rotate(-2deg); } 55% { transform: scale(.97) rotate(1deg); } 80% { transform: scale(1.02); } 100% { transform: scale(1); } }
+@keyframes non { 0%, 100% { transform: translateX(0) rotate(0); } 20% { transform: translateX(-10px) rotate(-3deg); } 40% { transform: translateX(9px) rotate(2.5deg); } 60% { transform: translateX(-6px) rotate(-1.5deg); } 80% { transform: translateX(3px) rotate(.5deg); } }
+@keyframes saute { 0%, 60%, 100% { transform: translateY(0) scale(1, 1); } 70% { transform: translateY(0) scale(1.06, .94); } 82% { transform: translateY(-10px) scale(.97, 1.03); } }
+@keyframes flotte { 50% { transform: translateY(-12px) rotate(12deg); } }
+@keyframes etoile { 0% { transform: translate(0, 0) scale(.3); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(var(--dx, 0), var(--dy, -80px)) scale(1) rotate(160deg); opacity: 0; } }
+@keyframes arrive { 0% { transform: translateY(40px) scale(.6); opacity: 0; } 60% { transform: translateY(-8px) scale(1.05); opacity: 1; } 100% { transform: none; } }
+
+.anim-apparait { animation: apparait .45s var(--ressort) both; }
+.anim-bravo { animation: bravo .6s ease both; }          /* bonne réponse : la carte rebondit */
+.anim-non { animation: non .5s ease both; }              /* erreur : la carte secoue la tête */
+.anim-saute { animation: saute 2.6s ease-in-out infinite; transform-origin: 50% 100%; }
+.anim-arrive { animation: arrive .7s var(--ressort) both; } /* entrée d'un personnage */
+
+/* Petits dessins de fond ★ ♥ ✿ ✦ */
+.deco { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: var(--deco); }
+.deco span { position: absolute; font-size: 22px; animation: flotte 7s ease-in-out infinite; }
+
+/* Interrupteur « Animations » de l'appli : <html class="calme"> */
+.calme *, .calme *::before, .calme *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ==========================================================================
+   Fluence : styles propres à l'appli (par-dessus la charte commune)
+   ========================================================================== */
+:root { --miss: #FFB38A; --band: var(--ligne-b); }
+@media (prefers-color-scheme: dark) { :root { --miss: #8A4A30; } }
+a { color: var(--action); }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.panel { background: var(--surface); border: var(--bord) solid var(--line); border-radius: var(--r-carte); box-shadow: var(--ombre-carte); padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.panel h2 { font-size: 1.3rem; }
+.hint { color: var(--muted); font-weight: 700; font-size: .92rem; margin: 0; }
+.center { text-align: center; }
+.link { background: none; border: 0; padding: 6px 2px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; color: var(--ink); }
+.foot { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 22px; }
+.foot .link { color: var(--muted); font-size: .92rem; }
+.row { display: flex; gap: 12px; }
+.row > .btn { flex: 1; }
+.meta, .tm { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.sous-titre { margin: -6px 0 0; text-align: center; color: var(--muted); font-weight: 700; }
+
+/* Accueil */
+.current .title { font-size: 1.5rem; }
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+.week div { display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 800; font-size: .78rem; color: var(--muted); }
+.week i { width: 34px; height: 34px; border-radius: 50%; border: var(--bord) solid var(--line); display: grid; place-items: center; font-style: normal; font-size: 1rem; background: var(--surface2); color: var(--on-good); }
+.week i.on { background: var(--good); }
+.week .today i { box-shadow: 0 0 0 3px var(--sun); }
+.trophies { display: flex; flex-wrap: wrap; gap: 8px; }
+.sizes { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 700; flex-wrap: wrap; }
+.sizes div { display: flex; gap: 8px; }
+.sizes button { width: 50px; height: 50px; border: var(--bord) solid var(--line); border-radius: var(--r-touche); background: var(--surface2); font-family: var(--lecture); font-weight: 700; cursor: pointer; box-shadow: 0 3px 0 var(--line); }
+.sizes button[aria-pressed="true"] { background: var(--action); color: var(--on-action); }
+
+/* Liste des textes */
+.tlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.tlist li { display: flex; flex-direction: column; gap: 2px; }
+.tlist button.pick { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: var(--bord) solid var(--line); border-radius: var(--r-touche); background: var(--surface); cursor: pointer; box-shadow: 0 4px 0 var(--line); }
+.tlist button.pick:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line); }
+.tlist button.pick[aria-current="true"] { background: var(--p-soleil); }
+.tlist .tt { font-family: var(--display); font-weight: 600; font-size: 1.15rem; line-height: 1.2; }
+.tlist .tm { font-weight: 700; font-size: .88rem; }
+.tlist li .link { align-self: flex-end; font-size: .85rem; color: var(--muted); }
+textarea, input[type="text"] { width: 100%; border: var(--bord) solid var(--line); border-radius: var(--r-touche); background: var(--surface2); color: var(--ink); padding: 10px 12px; font-size: 1.05rem; font-family: var(--body); }
+textarea { min-height: 220px; resize: vertical; font-family: var(--lecture); line-height: 1.6; }
+label.field { display: flex; flex-direction: column; gap: 6px; font-weight: 800; }
+
+/* Le texte à lire (classe commune texte-lecture) : mots touchables, une ligne sur deux teintée */
+.texte-lecture { font-size: var(--fs, 22px); max-width: none; margin: 0; overflow-wrap: break-word; }
+.texte-lecture .w { padding: 3px 0; -webkit-tap-highlight-color: transparent; }
+.texte-lecture.bands .w.odd { background: var(--band); }
+.texte-lecture.tap .w { cursor: pointer; }
+.texte-lecture .w.miss { background: var(--miss) !important; color: var(--ink); border-radius: 6px; text-decoration: underline wavy var(--line) 2px; text-underline-offset: 6px; }
+.texte-lecture .w.miss span { color: var(--ink); }
+.texte-lecture .w.after { opacity: .3; }
+.texte-lecture .w.last { box-shadow: 0 0 0 3px var(--action); border-radius: 6px; }
+.texte-lecture .w.say { background: var(--sun) !important; color: var(--on-sun); border-radius: 6px; }
+
+/* Écran de lecture : tient dans la hauteur de l'écran, le texte défile dans sa carte */
+body.playing .top { display: none; }
+#read {
+  --pads: calc(max(16px, env(safe-area-inset-top, 0px)) + max(24px, env(safe-area-inset-bottom, 0px)));
+  height: calc(100vh - var(--pads)); height: calc(100dvh - var(--pads)); max-height: 1100px;
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 10px;
+}
+.playbar { display: flex; align-items: center; gap: 12px; }
+.steps { flex: 1; display: flex; gap: 6px; justify-content: center; }
+.steps i { flex: 1; max-width: 56px; height: 16px; border: var(--bord) solid var(--line); border-radius: var(--r-pastille); background: var(--track); }
+.steps i.on { background: var(--good); }
+.steps i.now { background: var(--sun); }
+.playbar .lbl { font-family: var(--display); font-weight: 600; flex: none; }
+.page { overflow-y: auto; overscroll-behavior: contain; padding: 14px 14px 18px; background: var(--surface); border: var(--bord) solid var(--line); border-radius: var(--r-carte); box-shadow: var(--ombre-carte); margin-bottom: 6px; }
+.say-line { min-height: 2.6em; display: grid; place-items: center; text-align: center; font-weight: 800; font-size: 1rem; line-height: 1.3; color: var(--ink); }
+.clock { display: inline-flex; align-items: center; gap: 8px; }
+.clock::before { content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--retry); border: 2px solid var(--line); animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+.controls { display: flex; flex-direction: column; gap: 6px; }
+.controls .row .btn { min-height: 62px; font-size: 1.3rem; }
+@media (max-height: 640px) { .controls .row .btn { min-height: 56px; font-size: 1.15rem; } .say-line { font-size: .92rem; } }
+
+/* Résultat et courbe */
+.score { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.score .big { font-family: var(--display); font-weight: 700; font-size: clamp(3.6rem, 20vw, 5.4rem); line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+.score .unit { font-weight: 800; }
+.score .detail { color: var(--muted); font-weight: 700; font-size: .92rem; }
+.msg { text-align: center; font-family: var(--display); font-weight: 600; font-size: 1.35rem; margin: 0; }
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { font-family: var(--body); font-weight: 800; fill: var(--muted); }
+.chart .val { fill: var(--ink); font-family: var(--display); font-weight: 700; }
+.chart .ln { fill: none; stroke: var(--action); stroke-width: 3.5; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot { fill: var(--surface); stroke: var(--action); stroke-width: 3; }
+.chart .dot.best { fill: var(--sun); stroke: var(--line); }
+.chart .grid { stroke: var(--track); stroke-width: 2; }
+.chart .sep { stroke: var(--track); stroke-width: 2; stroke-dasharray: 4 5; }
+.scene { position: relative; }
+
+/* Question et mots ratés */
+.choices { display: flex; flex-direction: column; gap: 10px; }
+.choix:disabled { cursor: default; }
+.words { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.words button { font-family: var(--lecture); font-weight: 600; font-size: clamp(1.7rem, 8vw, 2.3rem); padding: 8px 18px; border: var(--bord) solid var(--line); border-radius: var(--r-touche); background: var(--surface); box-shadow: 0 4px 0 var(--line); cursor: pointer; letter-spacing: .03em; }
+.words button.done { background: var(--tint-good); }
+.gloss { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.gloss li { padding: 10px 14px; border: 2px solid var(--line); border-radius: var(--r-touche); background: var(--surface2); }
+.gloss b { font-family: var(--lecture); font-size: 1.3rem; display: block; }
+
+/* Bilan */
+.stars { display: flex; justify-content: center; gap: 8px; font-size: 3.2rem; line-height: 1; }
+.stars span { color: var(--sun); -webkit-text-stroke: 3px var(--line); }
+.badge { align-self: center; display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border: var(--bord) solid var(--line); border-radius: var(--r-pastille); background: var(--good); color: var(--on-good); font-family: var(--display); font-weight: 700; font-size: 1.15rem; box-shadow: 0 4px 0 var(--line); }
+.done h2 { text-align: center; font-size: 1.8rem; }
+
+/* Carnet du parent */
+.ptable { width: 100%; border-collapse: collapse; font-size: .9rem; font-variant-numeric: tabular-nums; }
+.ptable th, .ptable td { text-align: left; padding: 6px 4px; border-bottom: 2px solid var(--track); }
+.ptable th { font-weight: 800; color: var(--muted); }
+#pReads td, #pReads th { white-space: nowrap; }
+.scroll-x { overflow-x: auto; }
+
+/* Récompenses : étoiles, confettis, personnage */
+.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+.confetti i { position: absolute; top: -16px; width: 10px; height: 14px; border-radius: 2px; animation: fall linear forwards; }
+@keyframes fall { to { transform: translate(var(--dx), 110vh) rotate(var(--r)); } }
+.burst { position: fixed; width: 0; height: 0; pointer-events: none; z-index: 40; }
+.burst i { position: absolute; left: 0; top: 0; font-style: normal; line-height: 1; font-size: var(--s); color: var(--c); -webkit-text-stroke: 1.5px #2B2340; animation: burst .8s cubic-bezier(.2, .8, .3, 1) forwards; }
+@keyframes burst {
+  from { transform: translate(-50%, -50%) scale(.3); opacity: 1; }
+  70% { opacity: 1; }
+  to { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) rotate(var(--r)); opacity: 0; }
+}
+.buddy { position: absolute; right: -8px; bottom: -36px; width: 120px; height: 120px; z-index: 5; pointer-events: none; opacity: 0; }
+.buddy.on { opacity: 1; animation: arrive .7s var(--ressort) both; }
+.buddy svg { display: block; width: 100%; height: 100%; overflow: visible; transform-origin: 50% 90%; }
+.buddy.on svg { animation: hop .8s .5s ease-in-out 2; }
+@keyframes hop { 30% { transform: translateY(-14px) rotate(-6deg); } 60% { transform: rotate(4deg); } }
+.buddy .bulle { position: absolute; right: 92px; bottom: 88px; padding: 6px 12px; white-space: nowrap; border-radius: 18px; font-family: var(--display); font-weight: 700; font-size: 1.1rem; color: var(--ink); }
+.calme .buddy.on { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <header class="entete">
+      <a class="rond" href="/" aria-label="Mes applis">🏠</a>
+      <span class="titre">Fluence</span>
+      <button class="rond" type="button" id="gearBtn" aria-label="Réglages">⚙</button>
+    </header>
+  </div>
+
+  <main>
+    <!-- Accueil -->
+    <section id="home" class="stack">
+      <p class="sous-titre">Relis le même texte, et regarde ta courbe monter.</p>
+      <div class="panel current">
+        <span class="etiquette">Ton texte</span>
+        <h2 class="title" id="curTitle"></h2>
+        <div class="meta" id="curMeta"></div>
+        <div id="curChart"></div>
+        <p class="hint" id="curNote"></p>
+      </div>
+      <button class="btn btn-action" type="button" id="startBtn">Commencer la séance</button>
+      <button class="btn" type="button" id="textsBtn">Choisir un autre texte</button>
+
+      <div class="panel">
+        <h2>Ma semaine</h2>
+        <div class="week" id="week"></div>
+        <div class="trophies" id="trophies"></div>
+      </div>
+      <div class="foot">
+        <button class="link" type="button" id="howBtn">Comment ça marche ?</button>
+        <button class="link" type="button" id="parentBtn">Carnet du parent</button>
+      </div>
+    </section>
+
+    <!-- Réglages -->
+    <section id="settings" class="stack" hidden>
+      <div class="panel">
+        <h2>Réglages</h2>
+        <div class="sizes" role="group" aria-label="Taille du texte"><span>Taille du texte</span>
+          <div><button type="button" data-size="0" style="font-size:15px">A</button><button type="button" data-size="1" style="font-size:19px">A</button><button type="button" data-size="2" style="font-size:24px">A</button><button type="button" data-size="3" style="font-size:29px">A</button></div>
+        </div>
+        <label class="interrupteur"><span>Syllabes en couleur</span><input type="checkbox" id="optSyl"></label>
+        <label class="interrupteur"><span>Une ligne sur deux teintée</span><input type="checkbox" id="optBands"></label>
+        <label class="interrupteur"><span>🔊 Sons</span><input type="checkbox" id="optSound"></label>
+        <label class="interrupteur"><span>✨ Animations</span><input type="checkbox" id="optAnim"></label>
+        <p class="texte-lecture" id="sizeDemo" aria-hidden="true">Le petit dragon lit son livre.</p>
+      </div>
+      <button class="btn btn-action" type="button" data-go="home">C'est bon</button>
+    </section>
+
+    <!-- Mode d'emploi pour l'adulte -->
+    <section id="how" class="stack" hidden>
+      <div class="panel">
+        <h2>Comment ça marche ?</h2>
+        <p>Une séance dure environ 10 minutes, avec un adulte qui écoute.</p>
+        <ol>
+          <li><b>Texte nouveau :</b> l'adulte (ou la voix du téléphone) lit d'abord le texte lentement. On explique les mots difficiles.</li>
+          <li>L'enfant lit à voix haute. L'adulte lance le chrono, <b>touche les mots ratés</b>, puis touche « Fini ».</li>
+          <li>S'il bloque plus de 5 secondes sur un mot, l'adulte lui dit de continuer.</li>
+          <li>On fait <b>3 lectures</b> de suite. L'appli calcule les mots justes par minute et la courbe monte.</li>
+          <li>À la fin, il relit les mots ratés.</li>
+          <li>On garde le même texte <b>3 à 5 séances</b>, puis on en change. Avec un nouveau texte, la courbe peut redescendre un peu : c'est normal.</li>
+        </ol>
+        <p class="hint">Le chrono sert à mesurer, pas à faire la course : l'enfant ne voit pas les secondes pendant qu'il lit.</p>
+      </div>
+      <button class="btn btn-action" type="button" data-go="home">Retour</button>
+    </section>
+
+    <!-- Choix du texte -->
+    <section id="texts" class="stack" hidden>
+      <div class="panel">
+        <h2>Choisir un texte</h2>
+        <p class="hint">Les textes vont du plus court au plus long. Tu peux aussi ajouter un texte de l'école.</p>
+        <ul class="tlist" id="tlist"></ul>
+      </div>
+      <button class="btn btn-soleil" type="button" id="addBtn">Ajouter un texte</button>
+      <button class="btn" type="button" data-go="home">Retour</button>
+    </section>
+
+    <!-- Ajouter un texte -->
+    <section id="add" class="stack" hidden>
+      <div class="panel">
+        <h2>Ajouter un texte</h2>
+        <label class="field">Titre<input type="text" id="addTitle" maxlength="60" autocomplete="off"></label>
+        <label class="field">Le texte<textarea id="addText" spellcheck="true"></textarea></label>
+        <p class="hint" id="addCount">0 mot. Entre 80 et 150 mots, c'est l'idéal.</p>
+        <p class="hint">Le texte reste sur cet appareil, il n'est envoyé nulle part.</p>
+      </div>
+      <div class="row">
+        <button class="btn" type="button" data-go="texts">Annuler</button>
+        <button class="btn btn-action" type="button" id="addSave" disabled>Enregistrer</button>
+      </div>
+    </section>
+
+    <!-- Préparation d'un texte nouveau -->
+    <section id="prep" class="stack" hidden>
+      <div class="panel">
+        <span><span class="badge-nouveau">Nouveau</span></span>
+        <h2 id="prepTitle"></h2>
+        <p><b>1. Écouter le texte.</b> <span id="prepHow"></span></p>
+        <button class="btn" type="button" id="listenBtn">🔊 Écouter le texte</button>
+        <div class="page"><p class="texte-lecture" id="prepText"></p></div>
+      </div>
+      <div class="panel" id="glossPanel">
+        <h2>2. Les mots à comprendre</h2>
+        <ul class="gloss" id="gloss"></ul>
+      </div>
+      <button class="btn btn-action" type="button" id="prepGo">C'est parti pour la lecture 1</button>
+      <button class="btn" type="button" data-go="home">Retour</button>
+    </section>
+
+    <!-- Lecture chronométrée -->
+    <section id="read" hidden>
+      <div class="playbar">
+        <button class="rond" type="button" id="quit" aria-label="Quitter">✕</button>
+        <div class="steps" id="steps" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span class="lbl" id="readLbl"></span>
+      </div>
+      <div class="page" id="page"><p class="texte-lecture" id="readText"></p></div>
+      <div class="say-line" id="sayLine" role="status" aria-live="polite"></div>
+      <div class="controls" id="controls"></div>
+    </section>
+
+    <!-- Résultat d'une lecture -->
+    <section id="result" class="stack" hidden>
+      <div class="scene" id="resScene">
+        <div class="panel reussie" id="resPanel">
+          <div class="score">
+            <span class="big" id="resBig"></span>
+            <span class="unit">mots justes par minute</span>
+            <span class="detail" id="resDetail"></span>
+          </div>
+          <p class="msg" id="resMsg"></p>
+          <div id="resChart"></div>
+        </div>
+        <div class="buddy" id="buddy" aria-hidden="true">
+          <div class="bulle" id="bubble" hidden></div>
+          <svg viewBox="0 0 100 100" id="buddyArt"></svg>
+        </div>
+      </div>
+      <button class="btn btn-action" type="button" id="resNext"></button>
+    </section>
+
+    <!-- Question de compréhension -->
+    <section id="quiz" class="stack" hidden>
+      <div class="panel" id="quizPanel">
+        <span class="etiquette">Une question, sans chrono</span>
+        <h2 id="quizQ"></h2>
+        <div class="choices" id="quizChoices"></div>
+        <p class="astuce" id="quizClue" hidden></p>
+      </div>
+      <button class="btn" type="button" id="quizText">Revoir le texte</button>
+      <div class="panel" id="quizPage" hidden><p class="texte-lecture" id="quizTextP"></p></div>
+    </section>
+
+    <!-- Mots ratés -->
+    <section id="missed" class="stack" hidden>
+      <div class="panel">
+        <h2>Relis ces mots</h2>
+        <p class="hint" id="missedHint">Lis chaque mot à voix haute, puis touche-le.</p>
+        <div class="words" id="missedWords"></div>
+      </div>
+      <button class="btn btn-action" type="button" id="missedDone">J'ai relu les mots</button>
+    </section>
+
+    <!-- Bilan de la séance -->
+    <section id="done" class="stack done" hidden>
+      <div class="scene" id="doneScene">
+        <div class="panel reussie">
+          <div class="stars" aria-hidden="true"><span>★</span><span>★</span><span>★</span></div>
+          <h2 id="doneTitle">Séance terminée !</h2>
+          <span class="badge">✓ Séance du jour faite</span>
+          <p class="hint center" id="doneText"></p>
+          <div id="doneChart"></div>
+        </div>
+        <div class="buddy" id="buddy2" aria-hidden="true">
+          <div class="bulle" id="bubble2" hidden></div>
+          <svg viewBox="0 0 100 100" id="buddyArt2"></svg>
+        </div>
+      </div>
+      <button class="btn" type="button" id="doneNew" hidden>Choisir un nouveau texte</button>
+      <button class="btn btn-action" type="button" data-go="home">À demain !</button>
+    </section>
+
+    <!-- Carnet du parent -->
+    <section id="parent" class="stack" hidden>
+      <div class="panel">
+        <h2>Carnet du parent</h2>
+        <p class="hint">Mots justes par minute : la meilleure des 3 lectures de chaque séance. Les données restent sur cet appareil.</p>
+        <div id="pChart"></div>
+        <div class="scroll-x"><table class="ptable" id="pTexts"></table></div>
+      </div>
+      <div class="panel">
+        <h2>Toutes les lectures</h2>
+        <div class="scroll-x"><table class="ptable" id="pReads"></table></div>
+      </div>
+      <button class="btn btn-soleil" type="button" id="pCopy">Copier le résumé</button>
+      <button class="btn btn-action" type="button" data-go="home">Retour</button>
+      <div class="foot"><button class="link" type="button" id="resetBtn">Effacer les progrès</button></div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+  var store = {
+    get: function (k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+  // Clés préfixées « marc. » : tous les sites de l'adresse lechampdelaurore-boop.github.io partagent le même stockage.
+  var K_PREFS = 'marc.fluence.prefs', K_DATA = 'marc.fluence.data', K_MINE = 'marc.fluence.mestextes';
+  var READINGS = 3, SIZES = [22, 26, 31, 37];
+
+  /* ---------- Les textes ----------
+     Textes originaux écrits pour l'appli (aucun texte recopié d'une méthode).
+     Du plus court au plus long. mots : [mot, explication] ; question : une seule, à la première séance. */
+  var TEXTS = [
+    { id: 't01', titre: 'Le dragon qui avait froid',
+      texte: "Dans une grotte, au fond de la forêt, vivait un petit dragon nommé Pico. Un matin d'hiver, Pico se réveilla tout gelé. Il voulut cracher du feu pour se chauffer, mais il ne sortit qu'un petit nuage de fumée. Pico était triste. Son amie la chouette vint le voir. Elle lui apporta une grosse soupe bien chaude. Pico but la soupe d'un seul coup. Alors son ventre devint tout rouge, et une belle flamme sortit de sa bouche. Pico alluma un feu dans la grotte, et les deux amis passèrent l'hiver au chaud.",
+      mots: [['une grotte', 'un grand trou dans la roche, comme une maison creusée dans la montagne'], ['gelé', 'tout froid, comme de la glace']],
+      question: { q: 'Qu’est-ce qui a aidé Pico à refaire du feu ?', choix: ['Une soupe bien chaude', 'Un gros manteau', 'Le soleil du matin'], bonne: 0, indice: 'Relis ce que la chouette lui apporte.' } },
+
+    { id: 't02', titre: 'Le but de Léa',
+      texte: "Samedi, c'est le grand match de l'école. Léa met ses chaussures à crampons et son maillot vert. Son équipe joue contre l'équipe des bleus. Au début, les bleus vont très vite et marquent un but. Léa ne se décourage pas. Elle court, elle passe le ballon à Tom, et Tom le lui renvoie. Il ne reste qu'une minute à jouer. Léa tire de toutes ses forces. Le ballon passe entre les mains du gardien et entre dans le but ! À la fin, tout le monde se serre la main, et Léa est fière de son équipe.",
+      mots: [['des crampons', 'des petits plots sous les chaussures, pour ne pas glisser sur l’herbe'], ['se décourager', 'perdre l’envie de continuer']],
+      question: { q: 'Comment finit le match ?', choix: ['Un but partout', 'Les bleus gagnent', 'L’équipe de Léa gagne trois à zéro'], bonne: 0, indice: 'Compte les buts : un pour les bleus, puis…' } },
+
+    { id: 't03', titre: 'La cabane dans l’arbre',
+      texte: "Inès et son grand-père construisent une cabane dans le vieux chêne du jardin. Grand-père scie les planches, et Inès tient l'échelle. Ils clouent un plancher, puis quatre murs et un toit. Inès peint une petite porte en jaune. Le soir, elle veut dormir dans la cabane. Elle monte avec une lampe, une couverture et son livre préféré. Mais dans le noir, elle entend un bruit : « Hou, hou ! » Inès a un peu peur. Elle allume sa lampe et voit deux grands yeux ronds. C'est un hibou, posé sur la branche d'à côté. Inès sourit et lui dit bonne nuit.",
+      mots: [['un chêne', 'un grand arbre, ses fruits s’appellent des glands'], ['scier', 'couper le bois avec une scie'], ['un plancher', 'le sol en bois sur lequel on marche']],
+      question: { q: 'Pourquoi Inès a-t-elle eu peur ?', choix: ['Elle a entendu un bruit dans le noir', 'La cabane est tombée', 'Son grand-père est parti'], bonne: 0, indice: 'Relis ce qui se passe le soir, dans le noir.' } },
+
+    { id: 't04', titre: 'Mission sur la Lune',
+      texte: "La fusée décolle dans un grand bruit de tonnerre. À bord, il y a deux astronautes : Nina et Sam. Après trois jours de voyage, ils arrivent sur la Lune. Nina ouvre la porte et pose le pied sur le sol gris. Tout est calme. Il n'y a pas d'air, alors les astronautes gardent leur casque. Sam fait un saut et monte très haut, comme un kangourou ! Sur la Lune, on est beaucoup plus léger que sur la Terre. Les deux amis ramassent des cailloux pour les savants. Avant de repartir, ils plantent un petit drapeau. Dans le ciel noir, la Terre brille comme une grosse bille bleue.",
+      mots: [['décoller', 'quitter le sol pour s’envoler'], ['un astronaute', 'une personne qui voyage dans l’espace'], ['un savant', 'une personne qui étudie et cherche à comprendre le monde']],
+      question: { q: 'Pourquoi les astronautes gardent-ils leur casque ?', choix: ['Parce qu’il n’y a pas d’air', 'Parce qu’il fait trop chaud', 'Pour être plus beaux'], bonne: 0, indice: 'Relis la phrase avec le mot « casque ».' } },
+
+    { id: 't05', titre: 'Le robot qui voulait cuisiner',
+      texte: "Bip est un petit robot qui fait le ménage. Chaque jour, il passe l'aspirateur et range les jouets. Mais Bip rêve de faire la cuisine. Un dimanche, pendant que la famille dort, il entre dans la cuisine. Il casse des œufs, verse de la farine et ajoute du sucre. Il mélange si fort que la farine vole partout ! Bip devient tout blanc, comme un fantôme. Il met quand même le gâteau au four. Une bonne odeur réveille la famille. Tout le monde arrive dans la cuisine en pyjama. Le gâteau est un peu tordu, mais il est délicieux. Depuis ce jour, Bip prépare le gâteau du dimanche, et il porte un tablier.",
+      mots: [['la farine', 'une poudre blanche faite avec du blé, pour les gâteaux et le pain'], ['un tablier', 'un vêtement qu’on met devant soi pour ne pas se salir'], ['délicieux', 'très, très bon']],
+      question: { q: 'Pourquoi Bip porte-t-il un tablier maintenant ?', choix: ['Pour ne plus se salir avec la farine', 'Parce qu’il a froid', 'Pour faire le ménage'], bonne: 0, indice: 'Souviens-toi : la farine a volé partout.' } },
+
+    { id: 't06', titre: 'Le volcan endormi',
+      texte: "Sur l'île de Tom, il y a une montagne pointue. C'est un volcan, mais il dort depuis très longtemps. Un matin, le sol se met à trembler. Une fumée grise sort du sommet. Les habitants regardent la montagne avec inquiétude. Des savants arrivent avec des appareils pour écouter le volcan. Ils expliquent que, sous la terre, il y a de la roche si chaude qu'elle devient liquide. On l'appelle la lave. Quand elle monte, le volcan se réveille. Les savants surveillent le volcan jour et nuit. Pendant une semaine, il fume, puis il se calme. Tom est soulagé. Mais il sait que le volcan peut se réveiller un jour, alors il regarde souvent la montagne pointue.",
+      mots: [['le sommet', 'le haut d’une montagne'], ['l’inquiétude', 'quand on a peur qu’il arrive quelque chose de grave'], ['soulagé', 'content parce qu’on n’a plus peur']],
+      question: { q: 'Qu’est-ce que la lave ?', choix: ['De la roche si chaude qu’elle coule', 'De la fumée grise', 'De l’eau très froide'], bonne: 0, indice: 'Relis ce qu’expliquent les savants.' } },
+
+    { id: 't07', titre: 'La pieuvre qui se cachait',
+      texte: "Au fond de la mer, entre les rochers, vit une pieuvre nommée Ondine. Elle a huit bras couverts de ventouses et un gros corps tout mou. Ondine a un pouvoir étonnant : elle peut changer de couleur en un instant. Sur le sable, elle devient beige. Contre un rocher, elle devient grise et toute bosselée. Un jour, un requin affamé passe près d'elle. Ondine prend la couleur des algues, et le requin ne la voit pas. Il continue son chemin. Plus tard, un petit crabe s'approche. Cette fois, c'est Ondine qui a faim ! Elle reste immobile, cachée, puis elle attrape le crabe avec un de ses bras. Pour la pieuvre, se cacher sert à se protéger et aussi à chasser.",
+      mots: [['une ventouse', 'un petit rond qui colle très fort'], ['affamé', 'qui a très faim'], ['immobile', 'qui ne bouge pas du tout']],
+      question: { q: 'Pourquoi le requin passe-t-il sans attaquer Ondine ?', choix: ['Il ne la voit pas', 'Il n’a pas faim', 'Il a peur du crabe'], bonne: 0, indice: 'Relis ce que fait Ondine quand le requin arrive.' } },
+
+    { id: 't08', titre: 'Le pirate qui avait le mal de mer',
+      texte: "Le capitaine Barbe-Grise est le pirate le plus terrible des sept mers. Tout le monde a peur de lui. Mais il a un secret : il a le mal de mer ! Dès que les vagues grossissent, il devient tout vert et doit s'allonger dans sa cabine. Un jour, une grande tempête se lève. Le bateau monte et descend sur des vagues énormes. Barbe-Grise ne peut pas tenir la barre. C'est le mousse, un garçon de dix ans, qui prend sa place. Il tient bon toute la nuit, sous la pluie et le vent. Au matin, la mer est calme et le bateau est sauvé. Barbe-Grise remercie le mousse devant tout l'équipage. Il lui offre son chapeau et lui dit : « Désormais, c'est toi qui conduis quand il y a des vagues ! »",
+      mots: [['le mousse', 'le plus jeune marin du bateau'], ['la barre', 'la grande roue qui sert à diriger le bateau'], ['l’équipage', 'tous les marins du bateau']],
+      question: { q: 'Quel est le secret de Barbe-Grise ?', choix: ['Il est malade quand la mer bouge', 'Il ne sait pas nager', 'Il a perdu son trésor'], bonne: 0, indice: 'Relis la phrase avec le mot « secret ».' } },
+
+    { id: 't09', titre: 'La course de vélos',
+      texte: "Ce dimanche, il y a une course de vélos dans le village. Nina s'inscrit, même si son vélo est vieux et que sa chaîne grince. Au départ, il y a vingt enfants. Le drapeau se baisse, et tout le monde pédale très fort. Dans la première montée, Nina dépasse trois coureurs. Dans la descente, elle freine doucement pour ne pas tomber. Soudain, elle voit un garçon assis au bord de la route. Il est tombé et son genou saigne. Nina s'arrête aussitôt. Elle l'aide à se relever et lui donne sa gourde. Un adulte arrive pour s'occuper du garçon, et Nina repart. Elle arrive parmi les dernières. Pourtant, à la fin, l'organisateur l'appelle sur le podium. Il lui donne une médaille spéciale : la médaille de la gentillesse. Nina est plus fière que si elle avait gagné.",
+      mots: [['s’inscrire', 'donner son nom pour participer'], ['une gourde', 'une bouteille qu’on emporte pour boire'], ['le podium', 'l’estrade où montent les gagnants']],
+      question: { q: 'Pourquoi Nina reçoit-elle une médaille ?', choix: ['Parce qu’elle a aidé le garçon tombé', 'Parce qu’elle est arrivée la première', 'Parce que son vélo est le plus beau'], bonne: 0, indice: 'Regarde le nom de la médaille.' } },
+
+    { id: 't10', titre: 'Le trésor de la carte',
+      texte: "Dans le grenier de sa grand-mère, Léo trouve une vieille boîte en fer. À l'intérieur, il y a une carte dessinée à la main. On y voit la maison, le puits, le grand noyer et une croix rouge. Au dos, quelqu'un a écrit : « Depuis le puits, fais dix pas vers le soleil levant, puis cinq pas vers la rivière. » Léo sait que le soleil se lève à l'est. Il prend une boussole et une pelle, et il sort dans le jardin. Il compte ses pas à voix haute. Le voilà devant un rosier. Il creuse avec précaution et sent quelque chose de dur. C'est une petite boîte en métal ! Dedans, il découvre des billes, une toupie et la photo d'un enfant. Sa grand-mère sourit : « C'était mon trésor, quand j'avais ton âge. »",
+      mots: [['le grenier', 'la pièce tout en haut de la maison, sous le toit'], ['un puits', 'un trou très profond pour aller chercher de l’eau'], ['une boussole', 'un petit objet dont l’aiguille montre le nord']],
+      question: { q: 'À qui était le trésor ?', choix: ['À sa grand-mère, quand elle était petite', 'À un pirate', 'Aux parents de Léo'], bonne: 0, indice: 'Relis ce que dit la grand-mère à la fin.' } }
+  ];
+
+  var prefs = Object.assign({ size: 0, syl: false, bands: true, sound: true, anim: true }, store.get(K_PREFS, {}));
+  if (!(prefs.size >= 0 && prefs.size < SIZES.length)) prefs.size = 1;
+  var data = store.get(K_DATA, null);
+  if (!data || typeof data !== 'object') data = {};
+  data.cur = data.cur || null;
+  data.texts = data.texts && typeof data.texts === 'object' ? data.texts : {};
+  data.hist = Array.isArray(data.hist) ? data.hist : [];
+  data.days = Array.isArray(data.days) ? data.days : [];
+  var mine = store.get(K_MINE, []);
+  if (!Array.isArray(mine)) mine = [];
+  function savePrefs() { store.set(K_PREFS, prefs); applyCalm(); }
+  // Animations coupées : <html class="calme"> (charte commune).
+  function applyCalm() { document.documentElement.classList.toggle('calme', !prefs.anim); }
+  applyCalm();
+  function saveData() { store.set(K_DATA, data); }
+  function saveMine() { store.set(K_MINE, mine); }
+
+  function allTexts() { return TEXTS.concat(mine); }
+  function textById(id) { return allTexts().filter(function (t) { return t.id === id; })[0] || null; }
+  function tstate(id) { return data.texts[id] || (data.texts[id] = { sessions: 0, asked: false, done: false }); }
+  function curText() {
+    var t = textById(data.cur);
+    if (!t) { t = TEXTS[0]; data.cur = t.id; }
+    return t;
+  }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function plural(n, one, many) { return n + ' ' + (n > 1 ? many : one); }
+
+  /* ---------- Découpage du texte en mots ---------- */
+  // Espaces insécables autour de la ponctuation française : « Hou, hou ! » reste collé au mot voisin.
+  function normalize(s) {
+    return String(s).replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim()
+      .replace(/'/g, '’').replace(/ ([!?:;»])/g, ' $1').replace(/« /g, '« ').replace(/ ([–—]) /g, ' $1 ');
+  }
+  var LETTER = /[A-Za-zÀ-ÖØ-öø-ÿŒœÆæ0-9]/;
+  function tokens(s) {
+    return normalize(s).split(' ').map(function (raw) { return { raw: raw, word: LETTER.test(raw) }; });
+  }
+  function wordCount(s) { return tokens(s).filter(function (t) { return t.word; }).length; }
+
+  /* ---------- Syllabes écrites (règles simples, à vérifier à l'œil) ---------- */
+  var VOW = 'aeiouyàâäéèêëîïôöùûüœæ';
+  function isV(c) { return !!c && VOW.indexOf(c) >= 0; }
+  function sylWord(w) {
+    var low = w.toLowerCase();
+    if (low.length < 4) return [w];
+    var u = [], i = 0;
+    while (i < low.length) {
+      var c = low[i], two = low.substr(i, 2), next = low[i + 2];
+      if ((two === 'qu' || (two === 'gu' && 'eiéèêëy'.indexOf(next || '#') >= 0)) && isV(next)) { u.push({ s: i, v: false, n: 2 }); i += 2; continue; }
+      if (['ch', 'ph', 'gn', 'th', 'rh'].indexOf(two) >= 0) { u.push({ s: i, v: false, n: 2 }); i += 2; continue; }
+      if (c === 'y' && isV(low[i - 1]) && isV(low[i + 1])) { u.push({ s: i, v: false, n: 1 }); i++; continue; }
+      if (isV(c)) {
+        var j = i + 1;
+        while (j < low.length && isV(low[j]) && !(low[j] === 'y' && isV(low[j + 1]))) j++;
+        u.push({ s: i, v: true, n: j - i }); i = j; continue;
+      }
+      u.push({ s: i, v: false, n: 1, c: c }); i++;
+    }
+    var vi = [];
+    u.forEach(function (x, k) { if (x.v) vi.push(k); });
+    if (vi.length < 2) return [w];
+    var cuts = [];
+    for (var k = 0; k < vi.length - 1; k++) {
+      var cons = u.slice(vi[k] + 1, vi[k + 1]);
+      if (!cons.length) continue;
+      if (cons.length === 1) { cuts.push(cons[0].s); continue; }
+      var a = cons[cons.length - 2], b = cons[cons.length - 1];
+      var glued = a.n === 1 && 'bcdfgkptv'.indexOf(a.c) >= 0 && b.n === 1 && (b.c === 'l' || b.c === 'r') && !(a.c === 'd' && b.c === 'l');
+      cuts.push(glued ? a.s : b.s);
+    }
+    var out = [], from = 0;
+    cuts.forEach(function (p) { out.push(w.slice(from, p)); from = p; });
+    out.push(w.slice(from));
+    return out;
+  }
+  // Un mot avec sa ponctuation : « l’arbre, » → l’ + ar + bre + ,
+  function sylHTML(raw) {
+    var html = '', n = 0;
+    raw.split(/([A-Za-zÀ-ÖØ-öø-ÿŒœÆæ]+)/).forEach(function (part, i) {
+      if (i % 2 === 0) { html += esc(part); return; }
+      sylWord(part).forEach(function (s) { html += '<span class="' + (n++ % 2 ? 'syl-b' : 'syl-a') + '">' + esc(s) + '</span>'; });
+    });
+    return html;
+  }
+
+  // Affiche un texte mot par mot. Chaque mot porte data-i (son rang parmi les mots).
+  function renderText(el, text, opts) {
+    opts = opts || {};
+    var toks = tokens(text), wi = 0, html = '', offsets = [], pos = 0;
+    toks.forEach(function (t, k) {
+      var inner = prefs.syl && opts.syl !== false ? sylHTML(t.raw) : esc(t.raw);
+      // L'espace qui suit est dans le mot : le surlignage d'une ligne reste continu.
+      if (k < toks.length - 1) inner += ' ';
+      if (t.word) { html += '<span class="w" data-i="' + wi + '" data-c="' + pos + '">' + inner + '</span>'; offsets.push(pos); wi++; }
+      else html += '<span class="w p">' + inner + '</span>';
+      pos += t.raw.length + 1;
+    });
+    el.innerHTML = html;
+    el.classList.toggle('tap', !!opts.tap);
+    el.style.setProperty('--fs', SIZES[prefs.size] + 'px');
+    el._plain = toks.map(function (t) { return t.raw; }).join(' ');
+    el._offsets = offsets;
+    markLines(el);
+    return wi;
+  }
+  // Une ligne sur deux surlignée : on repère les lignes d'après la position des mots.
+  function markLines(el) {
+    el.classList.toggle('bands', !!prefs.bands);
+    if (!prefs.bands || !el.offsetParent) return;
+    var line = -1, top = null;
+    el.querySelectorAll('.w').forEach(function (w) {
+      var t = w.offsetTop;
+      if (top === null || t > top + 4) { line++; top = t; }
+      w.classList.toggle('odd', line % 2 === 1);
+    });
+  }
+  window.addEventListener('resize', function () { document.querySelectorAll('.text').forEach(markLines); });
+
+  /* ---------- Voix de l'appareil ---------- */
+  var synth = window.speechSynthesis || null;
+  function frVoice() {
+    if (!synth) return null;
+    var v = synth.getVoices().filter(function (x) { return /^fr/i.test(x.lang); });
+    return v.filter(function (x) { return /fr[-_]FR/i.test(x.lang); })[0] || v[0] || null;
+  }
+  if (synth && synth.addEventListener) synth.addEventListener('voiceschanged', function () { if (!views.prep.hidden) renderPrepVoice(); });
+  function speak(text, rate, onWord, onEnd) {
+    if (!synth) { if (onEnd) onEnd(); return; }
+    synth.cancel();
+    var u = new SpeechSynthesisUtterance(text.replace(/ /g, ' '));
+    var v = frVoice();
+    if (v) u.voice = v;
+    u.lang = 'fr-FR';
+    u.rate = rate || 0.8;
+    if (onWord) u.onboundary = function (e) { if (e.name === 'word' || e.name === undefined) onWord(e.charIndex); };
+    u.onend = u.onerror = function () { if (onEnd) onEnd(); };
+    synth.speak(u);
+  }
+  function hush() { if (synth) synth.cancel(); }
+
+  /* ---------- Courbe ---------- */
+  // points : [{ v: nombre, label: '1' }], seps : rangs avant lesquels tracer un trait (changement de séance ou de texte)
+  function chart(points, seps, h) {
+    if (!points.length) return '';
+    var W = 320, H = h || 150, L = 30, R = 14, T = 22, B = 24;
+    var max = Math.max.apply(null, points.map(function (p) { return p.v; }).concat([20]));
+    max = Math.ceil(max * 1.3 / 10) * 10;
+    var n = points.length, step = n > 1 ? (W - L - R) / (n - 1) : 0;
+    var x = function (i) { return n > 1 ? L + i * step : (L + W - R) / 2; };
+    var y = function (v) { return T + (H - T - B) * (1 - v / max); };
+    var best = Math.max.apply(null, points.map(function (p) { return p.v; }));
+    var s = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Courbe des mots justes par minute">';
+    [0, max / 2, max].forEach(function (g) {
+      s += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(g) + '" y2="' + y(g) + '"/><text x="' + (L - 6) + '" y="' + (y(g) + 4) + '" text-anchor="end" font-size="11">' + g + '</text>';
+    });
+    (seps || []).forEach(function (i) { var sx = (x(i - 1) + x(i)) / 2; s += '<line class="sep" x1="' + sx + '" x2="' + sx + '" y1="' + T + '" y2="' + (H - B) + '"/>'; });
+    if (n > 1) s += '<polyline class="ln" points="' + points.map(function (p, i) { return x(i).toFixed(1) + ',' + y(p.v).toFixed(1); }).join(' ') + '"/>';
+    var every = Math.ceil(n / 12);
+    points.forEach(function (p, i) {
+      var last = i === n - 1;
+      s += '<circle class="dot' + (p.v === best ? ' best' : '') + '" cx="' + x(i) + '" cy="' + y(p.v) + '" r="' + (last ? 7 : 5) + '"/>';
+      if (last || p.v === best || n <= 8) s += '<text class="val" x="' + x(i) + '" y="' + (y(p.v) - 11) + '" text-anchor="middle" font-size="' + (last ? 15 : 12) + '">' + p.v + '</text>';
+      if (p.label && (n <= 15 || i % every === 0)) s += '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="' + (n > 1 && i === 0 ? 'start' : (n > 1 && last ? 'end' : 'middle')) + '" font-size="11">' + esc(p.label) + '</text>';
+    });
+    return s + '</svg>';
+  }
+  function textHist(id) { return data.hist.filter(function (h) { return h.t === id; }); }
+  // Courbe d'un texte : toutes ses lectures, un trait entre deux séances.
+  function textChart(id, h) {
+    var hs = textHist(id), seps = [];
+    hs.forEach(function (r, i) { if (i && r.s !== hs[i - 1].s) seps.push(i); });
+    return chart(hs.map(function (r) { return { v: r.m, label: r.r === 1 ? 'Séance ' + r.s : '' }; }), seps, h);
+  }
+
+  /* ---------- Créatures de récompense ---------- */
+  // Dessins en viewBox 100 × 100, contour commun ajouté par showCreature().
+  var INK = '#2B2340', SKIN = '#FFE0CC', SKIN2 = '#F2BFA4';
+  var uidN = 0;
+  // Forme ombrée : couleur claire décalée vers le haut à gauche, ombre en bas à droite, contour par-dessus.
+  function S(shape, base, shade, d) {
+    var id = 'kc' + (++uidN);
+    d = d == null ? 3 : d;
+    return '<clipPath id="' + id + '"><' + shape + '/></clipPath>' +
+      '<g clip-path="url(#' + id + ')" stroke="none"><' + shape + ' fill="' + shade + '"/>' +
+      '<g transform="translate(' + -d + ' ' + -d + ')"><' + shape + ' fill="' + base + '"/></g></g><' + shape + ' fill="none"/>';
+  }
+  function mir(s) { return '<g transform="matrix(-1 0 0 1 100 0)">' + s + '</g>'; }
+  function both(s) { return s + mir(s); }
+  function hi(x, y, rx, ry, rot) {
+    return '<ellipse cx="' + x + '" cy="' + y + '" rx="' + rx + '" ry="' + ry + '" fill="#fff" opacity=".65" stroke="none"' +
+      (rot ? ' transform="rotate(' + rot + ' ' + x + ' ' + y + ')"' : '') + '/>';
+  }
+  function star(x, y, s, c) {
+    return '<path d="M' + x + ' ' + (y - s) + 'Q' + x + ' ' + y + ' ' + (x + s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y + s) +
+      'Q' + x + ' ' + y + ' ' + (x - s) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y - s) + 'z" fill="' + (c || '#FFC93C') + '" stroke-width="1.2"/>';
+  }
+  function ground(rx, y) { return '<ellipse cx="50" cy="' + (y || 91) + '" rx="' + (rx || 22) + '" ry="3" fill="' + INK + '" opacity=".14" stroke="none"/>'; }
+  // Tube à contour (cou, tentacule…) : un trait épais foncé puis un trait coloré plus fin.
+  function tube(d, c, w) {
+    return '<path d="' + d + '" fill="none" stroke="' + INK + '" stroke-width="' + (w + 5) + '"/><path d="' + d + '" fill="none" stroke="' + c + '" stroke-width="' + w + '"/>';
+  }
+  // Contour duveteux autour d'une ellipse.
+  function fluff(cx, cy, rx, ry, n, b) {
+    var d = '';
+    for (var i = 0; i <= n; i++) {
+      var t = i / n * 2 * Math.PI, x = cx + rx * Math.cos(t), y = cy + ry * Math.sin(t);
+      d += (i ? 'A' + b + ' ' + b + ' 0 0 1 ' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }
+    return 'path d="' + d + 'z"';
+  }
+  // Visage : o.x, o.y (yeux), o.g (écart), o.r (taille), o.iris, o.happy, o.m (smile|open|cat|none), o.my (bouche)
+  function F(o) {
+    var x = o.x || 50, y = o.y, g = o.g || 7, r = o.r || 3.6, s = '<g stroke="none">';
+    [x - g, x + g].forEach(function (ex) {
+      if (o.happy) return;
+      s += '<ellipse cx="' + ex + '" cy="' + y + '" rx="' + r + '" ry="' + (r * 1.2).toFixed(2) + '" fill="' + INK + '"/>';
+      if (o.iris) s += '<ellipse cx="' + ex + '" cy="' + (y + r * 0.55).toFixed(2) + '" rx="' + (r * 0.72).toFixed(2) + '" ry="' + (r * 0.42).toFixed(2) + '" fill="' + o.iris + '"/>';
+      s += '<circle cx="' + (ex - r * 0.35).toFixed(2) + '" cy="' + (y - r * 0.45).toFixed(2) + '" r="' + (r * 0.42).toFixed(2) + '" fill="#fff"/>' +
+        '<circle cx="' + (ex + r * 0.4).toFixed(2) + '" cy="' + (y + r * 0.3).toFixed(2) + '" r="' + (r * 0.18).toFixed(2) + '" fill="#fff"/>';
+    });
+    if (o.blush !== false) {
+      var by = o.by || y + r + 2.5, bg = o.bg || g + r + 1.5;
+      s += '<ellipse cx="' + (x - bg) + '" cy="' + by + '" rx="' + (r * 1.05).toFixed(2) + '" ry="' + (r * 0.62).toFixed(2) + '" fill="#FF8FA8" opacity=".75"/>' +
+        '<ellipse cx="' + (x + bg) + '" cy="' + by + '" rx="' + (r * 1.05).toFixed(2) + '" ry="' + (r * 0.62).toFixed(2) + '" fill="#FF8FA8" opacity=".75"/>';
+    }
+    s += '</g>';
+    if (o.happy) [x - g, x + g].forEach(function (ex) {
+      s += '<path d="M' + (ex - r) + ' ' + (y + r * 0.4) + 'q' + r + ' ' + (-r * 1.8) + ' ' + 2 * r + ' 0" fill="none" stroke-width="2.2"/>';
+    });
+    var my = o.my || y + r + 3.5, w = o.w || r;
+    if (o.m === 'open') s += '<path d="M' + (x - w) + ' ' + my + 'Q' + x + ' ' + (my + w * 2) + ' ' + (x + w) + ' ' + my + 'z" fill="#8A2D45" stroke-width="1.8"/>' +
+      '<ellipse cx="' + x + '" cy="' + (my + w * 0.6) + '" rx="' + w * 0.45 + '" ry="' + w * 0.28 + '" fill="#FF8FA8" stroke="none"/>';
+    else if (o.m === 'cat') s += '<path d="M' + (x - w) + ' ' + my + 'q' + w / 2 + ' ' + w * 0.8 + ' ' + w + ' 0q' + w / 2 + ' ' + w * 0.8 + ' ' + w + ' 0" fill="none" stroke-width="2"/>';
+    else if (o.m !== 'none') s += '<path d="M' + (x - w) + ' ' + my + 'q' + w + ' ' + w + ' ' + 2 * w + ' 0" fill="none" stroke-width="2.2"/>';
+    return s;
+  }
+  function hand(x, y, c, c2) { return S('circle cx="' + x + '" cy="' + y + '" r="4.3"', c || SKIN, c2 || SKIN2, 1.5); }
+  // Petit héros : pieds, corps, tête, puis accessoires.
+  function hero(o) {
+    return (o.back || '') +
+      '<ellipse cx="42" cy="86" rx="6" ry="4" fill="' + o.feet + '"/><ellipse cx="58" cy="86" rx="6" ry="4" fill="' + o.feet + '"/>' +
+      S('path d="M33 86q-1-20 17-22q18 2 17 22q-17 4-34 0z"', o.body, o.body2) + (o.deco || '') + (o.under || '') +
+      (o.noHead ? '' : S('circle cx="50" cy="44" r="19"', SKIN, SKIN2, 2.5)) + (o.head || '') + F(o.face) + (o.top || '') + (o.front || '');
+  }
+  function dragonWing(c) {
+    return both('<path d="M34 56Q24 33 7 37Q12 43 11 50Q17 48 19 54Q24 51 27 57Q31 55 34 58z" fill="' + c + '"/>' +
+      '<path d="M32 54L10 39M32 55L14 49M32 56L22 53" fill="none" stroke-width="1.3"/>');
+  }
+
+  var CREATURES = [
+    // 1. Dragon de feu
+    ['Braisou', ground(24) + dragonWing('#FF9F7A') +
+      S('path d="M62 79q25 4 22-17q-4-2-7 1q2 10-15 9z"', '#F2603C', '#CF4128', 2) +
+      '<path d="M82 63q-10-4-6-15q2 4 4 3q0-6 5-9q5 8 1 15q-1 4-4 6z" fill="#FFC93C"/><path d="M81 59q-3-2-1-6q2 2 3 1q1 3-2 5z" fill="#FF7A2E" stroke="none"/>' +
+      S('ellipse cx="40" cy="85" rx="7" ry="4.5"', '#F2603C', '#CF4128', 1.5) + S('ellipse cx="60" cy="85" rx="7" ry="4.5"', '#F2603C', '#CF4128', 1.5) +
+      '<path d="M44 40l3-6l3 5l3-5l3 6" fill="#FFC93C" stroke-width="1.8"/>' +
+      S('circle cx="50" cy="62" r="22"', '#F2603C', '#CF4128') +
+      S('ellipse cx="50" cy="71" rx="13" ry="11"', '#FFE3B8', '#F5C98E', 2) +
+      '<path d="M41 67h18M39 72h22M41 77h18" fill="none" stroke="#E2A866" stroke-width="1.5"/>' +
+      both('<path d="M37 45q-7-6-5-15q7 4 10 12z" fill="#FFE3B8"/>') +
+      S('ellipse cx="35" cy="70" rx="4" ry="5"', '#F2603C', '#CF4128', 1) + S('ellipse cx="65" cy="70" rx="4" ry="5"', '#F2603C', '#CF4128', 1) +
+      hi(39, 50, 4, 2.5, -35) + F({ y: 56, g: 9, r: 4.4, iris: '#FFB13C', m: 'open', my: 63, w: 3.6 }) +
+      '<path d="M53.5 63l1.5 3l1.5-3" fill="#fff" stroke-width="1.2"/>' + star(16, 26, 4) + star(80, 34, 3)],
+
+    // 2. Dragon de glace
+    ['Givrine', ground(24) + dragonWing('#D4F1FF') +
+      S('path d="M62 79q25 4 22-17q-4-2-7 1q2 10-15 9z"', '#9ED8F5', '#6DB6E2', 2) +
+      '<path d="M82 48l3 6l6 1l-4 5l1 6l-6-3l-6 3l1-6l-4-5l6-1z" fill="#fff" stroke-width="1.8"/>' +
+      S('ellipse cx="40" cy="85" rx="7" ry="4.5"', '#9ED8F5', '#6DB6E2', 1.5) + S('ellipse cx="60" cy="85" rx="7" ry="4.5"', '#9ED8F5', '#6DB6E2', 1.5) +
+      S('circle cx="50" cy="62" r="22"', '#9ED8F5', '#6DB6E2') +
+      S('ellipse cx="50" cy="71" rx="13" ry="11"', '#F0FAFF', '#CDEBFA', 2) +
+      '<path d="M50 64v13M44 67l12 7M56 67l-12 7" fill="none" stroke="#9ED8F5" stroke-width="1.6"/>' +
+      '<path d="M40 43l-2-13l7 9z" fill="#E8F7FF"/><path d="M46 41l4-15l4 15z" fill="#fff"/><path d="M60 43l2-13l-7 9z" fill="#E8F7FF"/>' +
+      S('ellipse cx="35" cy="70" rx="4" ry="5"', '#9ED8F5', '#6DB6E2', 1) + S('ellipse cx="65" cy="70" rx="4" ry="5"', '#9ED8F5', '#6DB6E2', 1) +
+      hi(39, 50, 4, 2.5, -35) + F({ y: 56, g: 9, r: 4.4, iris: '#4A8FE0', m: 'cat', my: 63, w: 3 }) +
+      star(18, 24, 3.5, '#fff') + star(84, 30, 4, '#fff') + star(12, 64, 2.5, '#fff')],
+
+    // 3. Fée des fleurs
+    ['Fleurette', hero({
+      back: '<g fill="#D9F7C8" opacity=".95"><path d="M38 64Q14 40 18 32Q30 32 42 60z"/><path d="M62 64Q86 40 82 32Q70 32 58 60z"/>' +
+        '<path d="M38 68Q20 80 24 84Q32 84 41 70z"/><path d="M62 68Q80 80 76 84Q68 84 59 70z"/></g>' +
+        '<path d="M40 62L24 37M60 62L76 37" fill="none" stroke="#8CCB6A" stroke-width="1.4"/>' +
+        '<path d="M31 40q-6 22 3 30l6-10zM69 40q6 22-3 30l-6-10z" fill="#A8723C"/>',
+      feet: '#7CC46A', body: '#FF9EC4', body2: '#E87BA6',
+      deco: '<path d="M33 86q4-12 9-14q4 8 8 14M50 86q4-10 9-14q4 8 8 14" fill="#FFC2DA" stroke-width="1.8"/>',
+      head: '<path d="M31 44q0-20 19-20q19 0 19 20q-4-8-12-10q-2 4-7 4q-5 0-7-4q-8 2-12 10z" fill="#B5793F"/>' +
+        '<g stroke-width="1.6"><circle cx="38" cy="28" r="4" fill="#FFD84D"/><circle cx="50" cy="24" r="4.5" fill="#FF6F91"/><circle cx="62" cy="28" r="4" fill="#B79CFF"/></g>' +
+        '<g fill="#fff" stroke="none"><circle cx="50" cy="24" r="1.6"/><circle cx="38" cy="28" r="1.3"/><circle cx="62" cy="28" r="1.3"/></g>',
+      face: { y: 47, g: 7, r: 3.6, iris: '#7A4A2A' },
+      front: hand(33, 74) + hand(67, 74) +
+        '<g transform="translate(7 10)"><path d="M62 64Q66 56 72 52" fill="none" stroke="#5FAE55" stroke-width="2"/><path d="M66 58q6-3 8 2q-6 3-8-2z" fill="#8CCB6A" stroke-width="1.4"/>' +
+        '<path d="M66 50q0-8 6-10q6 2 6 10q-3 4-6 2q-3 2-6-2z" fill="#FF6F91"/><path d="M69 42l3 6l3-6" fill="none" stroke-width="1.3"/></g>'
+    })],
+
+    // 4. Fée des étoiles
+    ['Étincelle', hero({
+      back: '<g opacity=".95"><path d="M38 62Q12 28 20 26Q34 26 43 58z" fill="#FFF1B8"/><path d="M62 62Q88 28 80 26Q66 26 57 58z" fill="#FFF1B8"/>' +
+        '<path d="M39 68Q18 86 26 88Q36 86 42 70z" fill="#FFE07A"/><path d="M61 68Q82 86 74 88Q64 86 58 70z" fill="#FFE07A"/></g>' +
+        '<g fill="#FFC93C" stroke="none"><circle cx="26" cy="34" r="2"/><circle cx="74" cy="34" r="2"/></g>' +
+        '<path d="M31 42q-4 26 5 30l4-14zM69 42q4 26-5 30l-4-14z" fill="#4B3FA8"/>',
+      feet: '#4B3FA8', body: '#B79CFF', body2: '#9378E8',
+      deco: star(42, 77, 2.6, '#FFF1B8') + star(55, 72, 2.2, '#FFF1B8') + star(58, 81, 2, '#FFF1B8'),
+      head: '<path d="M31 44q0-20 19-20q19 0 19 20q-3-9-9-12q-4 6-10 6q-6 0-10-6q-6 3-9 12z" fill="#4B3FA8"/>' +
+        '<path d="M60 24a7 7 0 1 0 6 10a5.5 5.5 0 1 1-6-10z" fill="#FFE066" stroke-width="1.6"/>',
+      face: { y: 47, g: 7, r: 3.6, iris: '#8C7AE6', m: 'open', w: 3 },
+      front: hand(33, 74) +
+        '<path d="M66 74L80 50" fill="none" stroke="#FFF1B8" stroke-width="2.5"/>' + star(81, 46, 8, '#FFC93C') + hand(67, 74) +
+        star(88, 64, 2.5, '#FFE066') + star(74, 34, 2, '#FFE066') + star(14, 54, 2.5, '#FFE066')
+    })],
+
+    // 5. Luciole feu follet
+    ['Lumio', '<circle cx="50" cy="56" r="34" fill="#FFF3B0" stroke="none" opacity=".45"/><circle cx="50" cy="56" r="27" fill="#FFF3B0" stroke="none" opacity=".6"/>' +
+      '<g fill="#E8F7FF" opacity=".9"><ellipse cx="31" cy="40" rx="13" ry="7" transform="rotate(-35 31 40)"/><ellipse cx="69" cy="40" rx="13" ry="7" transform="rotate(35 69 40)"/>' +
+      '<ellipse cx="30" cy="54" rx="9" ry="5" transform="rotate(15 30 54)"/><ellipse cx="70" cy="54" rx="9" ry="5" transform="rotate(-15 70 54)"/></g>' +
+      '<path d="M44 38q-4-12-12-13M56 38q4-12 12-13" fill="none" stroke-width="2"/>' + star(31, 24, 4.5, '#FFE066') + star(69, 24, 4.5, '#FFE066') +
+      S('ellipse cx="50" cy="73" rx="14" ry="12"', '#FFE066', '#FFC93C', 2) + '<path d="M38 72q12 5 24 0M39 78q11 4 22 0" fill="none" stroke="#F5A623" stroke-width="1.5"/>' +
+      S('circle cx="50" cy="52" r="17"', '#7C6FD8', '#5E52BF') + hi(43, 43, 3.5, 2, -35) +
+      F({ y: 52, g: 6.5, r: 3.8, iris: '#B7A3FF', m: 'smile', w: 3 }) +
+      star(18, 74, 2.5, '#FFE066') + star(84, 72, 3, '#FFE066') + star(80, 88, 2, '#FFE066')],
+
+    // 6. Esprit de la mousse
+    ['Moussu', ground(24) + '<path d="M50 39v-9" fill="none" stroke-width="2.2"/><path d="M50 31q-11-8-15 1q9 4 15-1z" fill="#A6DD7A"/><path d="M50 30q11-10 16-1q-9 5-16 1z" fill="#A6DD7A"/>' +
+      '<path d="M42 31l8-0.5M52 29l9 0" fill="none" stroke="#7CC46A" stroke-width="1.2"/>' +
+      '<path d="M33 86q-1-6 5-6q3 6 0 7zM67 86q1-6-5-6q-3 6 0 7z" fill="#8A5A3C"/>' +
+      S(fluff(50, 62, 22, 22, 14, 6), '#7CC46A', '#5BA650') +
+      '<g stroke="none" fill="#5BA650"><circle cx="38" cy="52" r="3"/><circle cx="64" cy="73" r="3.5"/><circle cx="62" cy="48" r="2"/><circle cx="36" cy="75" r="2.2"/></g>' +
+      '<rect x="66" y="56" width="4" height="7" rx="2" fill="#FFF1DC" stroke-width="1.5"/><path d="M62 57q6-9 12 0z" fill="#F25C54" stroke-width="1.6"/>' +
+      
+      '<g fill="#fff" stroke="none"><circle cx="66" cy="54.5" r="1"/><circle cx="70" cy="55.5" r=".9"/></g>' +
+      F({ y: 61, g: 8, r: 4.4, iris: '#3E7A3A', m: 'cat', w: 3 })],
+
+    // 7. Champignon
+    ['Champi', ground(22) + '<path d="M28 90q2-8 5-1q2-7 4 1M64 90q2-8 4-1q3-7 5 1" fill="none" stroke="#5FAE55" stroke-width="2"/>' +
+      '<ellipse cx="43" cy="87" rx="5" ry="3.5" fill="#C98A4B"/><ellipse cx="57" cy="87" rx="5" ry="3.5" fill="#C98A4B"/>' +
+      S('path d="M36 56q-2 30 14 30q16 0 14-30z"', '#FFF1DC', '#EBD2B0', 2.5) +
+      hand(35, 74, '#FFF1DC', '#EBD2B0') + hand(65, 74, '#FFF1DC', '#EBD2B0') +
+      S('path d="M30 56q20 7 40 0q-4 5-20 7q-16-2-20-7z"', '#F6DFC0', '#E6C79E', 1) +
+      '<path d="M38 58l2 3M44 59l1 3.5M50 59.5v3.5M56 59l-1 3.5M62 58l-2 3" fill="none" stroke="#D1AE80" stroke-width="1.2"/>' +
+      S('path d="M22 56q0-32 28-32q28 0 28 32q-28 7-56 0z"', '#F25C54', '#D23F3F') +
+      '<g stroke-width="1.6" fill="#fff"><circle cx="37" cy="40" r="5"/><circle cx="54" cy="32" r="3.5"/><circle cx="66" cy="45" r="4.5"/><circle cx="49" cy="47" r="2.5"/><circle cx="28" cy="51" r="2"/></g>' +
+      hi(33, 33, 4, 2, -40) + F({ y: 69, g: 6.5, r: 3.6, iris: '#C98A4B', m: 'open', w: 2.8 })],
+
+    // 8. Nuage arc-en-ciel
+    ['Nuagine', '<g fill="none" stroke-width="5" stroke-linecap="butt"><path d="M20 62a30 30 0 0 1 60 0" stroke="#FF8FA8"/><path d="M25 62a25 25 0 0 1 50 0" stroke="#FFE066"/><path d="M30 62a20 20 0 0 1 40 0" stroke="#8FD3F4"/></g>' +
+      '<path d="M17.5 62a32.5 32.5 0 0 1 65 0M32.5 62a17.5 17.5 0 0 1 35 0" fill="none" stroke-width="1.6"/>' +
+      '<g fill="#8FD3F4" stroke-width="1.5"><path d="M34 82q-3 4 0 6q3-2 0-6z"/><path d="M50 86q-3 4 0 6q3-2 0-6z"/></g>' +
+      '<path d="M66 80l-4 6h4l-3 6" fill="none" stroke="#FFC93C" stroke-width="3"/><path d="M66 80l-4 6h4l-3 6" fill="none" stroke-width="1" opacity=".6"/>' +
+      S('path d="M28 78a12 12 0 0 1 2-22a15 15 0 0 1 22-10a14 14 0 0 1 22 8a12 12 0 0 1-2 24z"', '#FFFFFF', '#DCE6F5') +
+      hi(40, 54, 4, 2, -25) + F({ y: 64, g: 8, r: 4, iris: '#8FD3F4', m: 'cat', w: 3 })],
+
+    // 9. Licorne
+    ['Licorneau', ground(22) + '<path d="M70 72q18-2 14 14q-2-6-8-6q4-6-6-8z" fill="#B79CFF"/>' +
+      S('ellipse cx="41" cy="85" rx="6.5" ry="4.5"', '#fff', '#E3DCF5', 1.5) + S('ellipse cx="59" cy="85" rx="6.5" ry="4.5"', '#fff', '#E3DCF5', 1.5) +
+      '<path d="M36 87h10M54 87h10" fill="none" stroke="#B79CFF" stroke-width="2.5" stroke-linecap="butt"/>' +
+      S('ellipse cx="50" cy="73" rx="17" ry="13"', '#fff', '#E3DCF5') +
+      both('<path d="M33 40l-3-13l11 7z" fill="#fff"/><path d="M34 37l-1.5-6l5 3.5z" fill="#FFB3D9" stroke="none"/>') +
+      S('circle cx="50" cy="52" r="20"', '#fff', '#E3DCF5') +
+      '<path d="M45 34l5-20l5 20z" fill="#FFE066"/><path d="M46.5 28l7-3M47.5 22l5-2" fill="none" stroke="#F5A623" stroke-width="1.4"/>' +
+      '<path d="M31 46q-6-14 6-16q2-6 9-3q-3 8-10 9q-3 4-5 10z" fill="#FF9EC4"/><path d="M55 27q7-3 11 3q7 1 6 9q-6-3-10-2q-3-6-7-10z" fill="#9EE6E0"/>' +
+      '<path d="M45 30q4-5 10-3q-3 5-10 3z" fill="#B79CFF"/>' +
+      S('ellipse cx="50" cy="62" rx="11" ry="7"', '#FFE6F0', '#F7CADB', 1.5) +
+      '<g stroke="none" fill="' + INK + '"><circle cx="46" cy="62" r="1.3"/><circle cx="54" cy="62" r="1.3"/></g>' +
+      F({ y: 50, g: 9, r: 4.3, iris: '#B79CFF', m: 'smile', my: 66, w: 2.5, by: 57, bg: 15 }) + star(78, 28, 3.5) + star(22, 62, 2.5, '#FF9EC4')],
+
+    // 10. Hibou érudit
+    ['Hibulle', '<path d="M80 14a10 10 0 1 0 8 15a8 8 0 1 1-8-15z" fill="#FFE066"/>' + star(16, 22, 3) + ground(20) +
+      '<g fill="#FFC93C" stroke-width="1.6"><path d="M41 82l-3 6h7zM59 82l3 6h-7z"/></g>' +
+      both('<path d="M31 40l1-14l11 9z" fill="#8C7AE6"/>') +
+      S('ellipse cx="50" cy="60" rx="22" ry="24"', '#8C7AE6', '#6E5BCC') +
+      S('ellipse cx="50" cy="70" rx="14" ry="12"', '#E4DEFF', '#C9C0F2', 1.5) +
+      '<path d="M42 66q2 2 4 0q2 2 4 0q2 2 4 0q2 2 4 0M44 72q2 2 4 0q2 2 4 0q2 2 4 0" fill="none" stroke="#9D8FE0" stroke-width="1.3"/>' +
+      '<g stroke-width="2"><circle cx="40.5" cy="51" r="8.5" fill="#fff"/><circle cx="59.5" cy="51" r="8.5" fill="#fff"/></g>' +
+      '<path d="M49 51h2" fill="none" stroke-width="2"/>' +
+      F({ y: 51, g: 9.5, r: 4, iris: '#FFC93C', blush: false, m: 'none' }) +
+      '<path d="M47 58l3 4.5l3-4.5z" fill="#FFC93C" stroke-width="1.5"/>' +
+      '<path d="M34 78l16 4l16-4v-9l-16 4l-16-4z" fill="#E8455A"/><path d="M50 73v9" fill="none" stroke-width="1.6"/>' +
+      '<path d="M36 72l12 3M52 75l12-3" fill="none" stroke="#fff" stroke-width="1.3"/>' +
+      S('ellipse cx="30" cy="68" rx="6" ry="11"', '#7564CF', '#5A49B5', 1.5) + S('ellipse cx="70" cy="68" rx="6" ry="11"', '#7564CF', '#5A49B5', 1.5)],
+
+    // 11. Golem de pierre
+    ['Galet', ground(26) + S('rect x="36" y="80" width="11" height="8" rx="4"', '#A8A3B8', '#8A849C', 1.5) + S('rect x="53" y="80" width="11" height="8" rx="4"', '#A8A3B8', '#8A849C', 1.5) +
+      S('rect x="28" y="38" width="44" height="45" rx="16"', '#BDB8CC', '#9C96AE') +
+      S('rect x="16" y="56" width="12" height="20" rx="6"', '#A8A3B8', '#8A849C', 1.5) + S('rect x="72" y="56" width="12" height="20" rx="6"', '#A8A3B8', '#8A849C', 1.5) +
+      '<path d="M30 50q2-14 20-12q18-2 20 12q-6-4-10 0q-4-5-10-1q-6-4-10 1q-4-4-10 0z" fill="#7CC46A"/>' +
+      '<g stroke-width="1.5"><circle cx="58" cy="37" r="3" fill="#FF9EC4"/><circle cx="64" cy="40" r="2.4" fill="#FFE066"/></g>' +
+      '<path d="M64 62l3 5l-2 4M33 70l4 2" fill="none" stroke-width="1.6"/>' +
+      '<circle cx="50" cy="73" r="5" fill="#9EF0FF" stroke="none" opacity=".5"/><path d="M50 69l3 4l-3 4l-3-4z" fill="#5FE0F5" stroke-width="1.6"/>' +
+      hi(34, 58, 2, 4) + F({ y: 58, g: 8, r: 4, iris: '#5FE0F5', m: 'smile', w: 3 })],
+
+    // 12. Griffon
+    ['Grifon', ground(24) + '<path d="M66 76q18 2 14-14" fill="none" stroke-width="3"/><path d="M80 63q-6-6 0-11q6 5 0 11z" fill="#C98A4B"/>' +
+      S('ellipse cx="50" cy="70" rx="20" ry="16"', '#F5C46B', '#DDA448') +
+      '<g fill="#FFC93C" stroke-width="1.6"><path d="M37 82l-2 6h4l1-2l1 2h4l-1-6zM55 82l-1 6h4l1-2l1 2h4l-2-6z"/></g>' +
+      both('<path d="M38 68Q18 66 12 38Q19 44 23 42Q23 49 28 49Q27 55 33 56Q33 61 38 60z" fill="#FFF8EE"/><path d="M36 64Q24 58 19 46M36 62Q28 56 26 50" fill="none" stroke="#C9B8A0" stroke-width="1.3"/>') +
+      '<path d="M41 30l3-10l4 8l2-10l3 10l4-8l1 10" fill="#FFF8EE"/>' +
+      S('circle cx="50" cy="46" r="17"', '#FFF8EE', '#E8DCC8') +
+      '<path d="M35 46q15 6 30 0" fill="none" stroke="#E8DCC8" stroke-width="1.4"/>' +
+      F({ y: 43, g: 7, r: 3.8, iris: '#C98A4B', m: 'none', by: 50, bg: 12 }) +
+      '<path d="M45 49q5-3 10 0q-1 6-5 9q-4-3-5-9z" fill="#FFA43C" stroke-width="1.8"/><path d="M46 52h8" fill="none" stroke-width="1.2"/>'],
+
+    // 13. Phénix
+    ['Phénixou', '<path d="M44 72q-14 6-18 18q12-2 20-14zM56 72q14 6 18 18q-12-2-20-14z" fill="#FF5470"/><path d="M50 72q-8 12 0 24q8-12 0-24z" fill="#FFC93C"/><path d="M50 80q-3 5 0 10q3-5 0-10z" fill="#FF7A45" stroke="none"/>' +
+      '<path d="M50 39q-6-14 0-22q6 8 0 22zM44 41q-10-8-8-16q8 4 8 16zM56 41q10-8 8-16q-8 4-8 16z" fill="#FFC93C"/><path d="M50 36q-2-6 0-11q2 5 0 11z" fill="#FF7A45" stroke="none"/>' +
+      both('<path d="M33 56Q12 40 8 58Q16 56 18 62Q22 58 26 63Q30 58 34 62z" fill="#FFB347"/><path d="M32 58Q20 54 16 66Q22 64 26 68z" fill="#FF7A45"/>') +
+      S('circle cx="50" cy="58" r="19"', '#FF7A45', '#E65A30') + S('ellipse cx="50" cy="67" rx="10" ry="8"', '#FFD9A8', '#F5BD7E', 1.5) +
+      hi(42, 48, 3.5, 2, -35) + F({ y: 54, g: 7, r: 4, iris: '#FFE066', m: 'none' }) +
+      '<path d="M47 60l3 4.5l3-4.5z" fill="#FFC93C" stroke-width="1.5"/>' +
+      '<g fill="#FFC93C" stroke="none"><circle cx="20" cy="30" r="2"/><circle cx="82" cy="36" r="2.5"/><circle cx="84" cy="22" r="1.5"/></g>'],
+
+    // 14. Coffre mimique
+    ['Mimic', ground(28) + '<g fill="#FFC93C" stroke-width="1.6"><ellipse cx="22" cy="87" rx="5" ry="3"/><ellipse cx="78" cy="88" rx="4.5" ry="2.8"/><ellipse cx="74" cy="84" rx="4" ry="2.5"/></g>' +
+      S('rect x="24" y="54" width="52" height="32" rx="5"', '#B5763A', '#94592A') +
+      '<path d="M25 66h50M25 76h50" fill="none" stroke="#94592A" stroke-width="1.4"/>' +
+      '<rect x="30" y="54" width="6" height="32" fill="#8E95A8" stroke-width="1.8"/><rect x="64" y="54" width="6" height="32" fill="#8E95A8" stroke-width="1.8"/>' +
+      '<rect x="27" y="47" width="46" height="9" fill="#4A2033"/>' +
+      '<path d="M31 47l3 5l3-5zM40 47l2.5 4l2.5-4zM55 47l2.5 4l2.5-4zM63 47l3 5l3-5zM36 56l2.5-4l2.5 4zM59 56l2.5-4l2.5 4z" fill="#fff" stroke-width="1.2"/>' +
+      '<path d="M44 53q6-6 12 0q1 6-6 10q-7-4-6-10z" fill="#FF8FA8" stroke-width="1.8"/><path d="M50 53v5" fill="none" stroke="#E86A88" stroke-width="1.3"/>' +
+      S('path d="M24 47q0-21 26-21q26 0 26 21z"', '#C98A4B', '#A86E36') +
+      '<path d="M33 28v19M67 28v19" fill="none" stroke="#8E95A8" stroke-width="5" stroke-linecap="butt"/><path d="M30.5 29v18M35.5 27v20M64.5 27v20M69.5 29v18" fill="none" stroke-width="1.6"/>' +
+      '<path d="M24 47h52" fill="none"/>' +
+      '<rect x="44" y="62" width="12" height="13" rx="3" fill="#FFC93C"/><path d="M50 66v4" fill="none" stroke-width="2.2"/>' +
+      hi(40, 33, 4, 2, -15) + F({ y: 37, g: 9, r: 3.8, iris: '#FFC93C', m: 'none', by: 43, bg: 15 })],
+
+    // 15. Goutte d'eau
+    ['Bulline', '<ellipse cx="50" cy="88" rx="26" ry="5" fill="#BDE6FF"/><path d="M30 88q10 3 20 0q10 3 20 0" fill="none" stroke="#6EC6FF" stroke-width="1.4"/>' +
+      '<g fill="#E3F6FF" stroke-width="1.5"><circle cx="18" cy="44" r="4"/><circle cx="83" cy="36" r="3"/><circle cx="85" cy="62" r="5"/></g>' +
+      '<g fill="#fff" stroke="none"><circle cx="16.8" cy="42.8" r="1.2"/><circle cx="83.2" cy="60.6" r="1.6"/></g>' +
+      S('path d="M50 22q24 28 24 44a24 24 0 0 1-48 0q0-16 24-44z"', '#6EC6FF', '#3FA2E8') +
+      '<g fill="#B5E3FF" stroke="none" opacity=".8"><circle cx="64" cy="76" r="3"/><circle cx="60" cy="82" r="1.8"/><circle cx="36" cy="80" r="2"/></g>' +
+      '<ellipse cx="38" cy="54" rx="4" ry="8" fill="#fff" opacity=".65" stroke="none" transform="rotate(25 38 54)"/><circle cx="43" cy="43" r="2" fill="#fff" opacity=".8" stroke="none"/>' +
+      '<path d="M50 22q-6-7 1-11q5 4-1 11z" fill="#8CCB6A" stroke-width="1.6"/>' +
+      F({ y: 64, g: 8, r: 4.5, iris: '#BDE6FF', m: 'open', w: 3 })],
+
+    // ---------- Nouveaux héros ----------
+    // 16. Chevalier
+    ['Chevalou', hero({
+      feet: '#8E95A8', body: '#4F7DF0', body2: '#3A5FC8',
+      deco: '<path d="M33.5 79h33" fill="none" stroke="#8A5A3C" stroke-width="3.5" stroke-linecap="butt"/><rect x="47" y="76.5" width="6" height="5" rx="1" fill="#FFC93C" stroke-width="1.4"/>' + star(50, 70, 3.5, '#FFE066'),
+      noHead: true,
+      head: '<path d="M50 26q4-16 18-15q-4 3-3 8q-6-1-11 9z" fill="#E8455A"/>' +
+        S('circle cx="50" cy="44" r="20"', '#D5DDE8', '#A3AFC2') +
+        '<rect x="47" y="24" width="6" height="12" rx="3" fill="#FFC93C" stroke-width="1.8"/>' +
+        S('rect x="36" y="38" width="28" height="21" rx="10"', SKIN, SKIN2, 2) +
+        '<g fill="#F0F4F9" stroke-width="1.3"><circle cx="33.5" cy="52" r="1.6"/><circle cx="66.5" cy="52" r="1.6"/></g>' + hi(38, 31, 3.5, 2, -40),
+      face: { y: 47, g: 6.5, r: 3.4, iris: '#4F7DF0', m: 'smile', w: 2.6, by: 53, bg: 10.5 },
+      front: '<g transform="rotate(18 69 74)"><path d="M66.5 70v-26l2.5-5l2.5 5v26z" fill="#F0F4F9"/><path d="M69 42v26" fill="none" stroke="#C9D3E0" stroke-width="1.2"/>' +
+        '<rect x="61" y="68" width="16" height="4.5" rx="2.2" fill="#FFC93C"/><rect x="67" y="72" width="4" height="8" rx="1.5" fill="#8A5A3C"/></g>' + hand(68, 76) +
+        S('path d="M20 62h22v9q0 11-11 16q-11-5-11-16z"', '#E8455A', '#C7334A', 2) +
+        star(31, 72, 7, '#FFE066') + hi(25, 66, 2, 1.2)
+    })],
+
+    // 17. Magicien
+    ['Magicot', hero({
+      feet: '#5E43C0', body: '#7B5CE0', body2: '#5E43C0',
+      deco: star(42, 76, 2.4, '#FFE066') + star(57, 80, 2, '#FFE066') + '<path d="M58 70a3 3 0 1 0 2 4a2.4 2.4 0 1 1-2-4z" fill="#FFE066" stroke-width="1.2"/>',
+      back: '<path d="M71 90L75 40" fill="none" stroke="' + INK + '" stroke-width="6.5"/><path d="M71 90L75 40" fill="none" stroke="#A8723C" stroke-width="3"/>' +
+        '<circle cx="76" cy="34" r="11" fill="#9EF0FF" opacity=".45" stroke="none"/><path d="M71 41q-2-6 1-9M80 41q2-6-1-9" fill="none" stroke="#A8723C" stroke-width="2"/>' +
+        S('circle cx="76" cy="34" r="6"', '#9EF0FF', '#4FC8E8', 1.5) + hi(74, 32, 1.6, 1),
+      head: S('path d="M36 51q-1 18 14 20q15-2 14-20q-6 5-14 5q-8 0-14-5z"', '#fff', '#DCDCEF', 2) +
+        '<path d="M43 54q3.5-3 7 0q3.5-3 7 0q-3 3.5-7 1.5q-4 2-7-1.5z" fill="#fff" stroke-width="1.6"/>' +
+        S('path d="M33 33q6-14 13-24q6-8 15-5q-6 2-6 8q2 12 12 21z"', '#7B5CE0', '#5E43C0') +
+        '<path d="M34 30q16 5 32 0l1.5 4q-17.5 5.5-35 0z" fill="#FFC93C" stroke-width="1.8"/>' +
+        S('ellipse cx="50" cy="34" rx="25" ry="5.5"', '#7B5CE0', '#5E43C0', 1) + star(46, 20, 3, '#FFE066') + star(56, 12, 2, '#FFE066'),
+      face: { y: 45, g: 7, r: 3.4, iris: '#7B5CE0', m: 'none', by: 50, bg: 11 },
+      front: hand(33, 73) + hand(72, 66)
+    })],
+
+    // 18. Elfe archère
+    ['Archette', hero({
+      back: '<g transform="rotate(28 64 60)"><rect x="60" y="47" width="9" height="24" rx="3" fill="#A8723C"/><path d="M62 47l-1-6l3 2zM66 47l0-7l3 3z" fill="#E8455A" stroke-width="1.4"/></g>' +
+        '<path d="M28 50Q12 72 28 94" fill="none" stroke="' + INK + '" stroke-width="6"/><path d="M28 50Q12 72 28 94" fill="none" stroke="#C98A4B" stroke-width="2.6"/>' +
+        '<path d="M28 50V94" fill="none" stroke-width="1"/>' +
+        S('circle cx="50" cy="42" r="23"', '#4CAF6A', '#378A52'),
+      feet: '#8A5A3C', body: '#7CCB8A', body2: '#58AA6C',
+      deco: '<path d="M33.5 77h33" fill="none" stroke="#8A5A3C" stroke-width="3.2" stroke-linecap="butt"/><path d="M44 66l6 6l6-6" fill="none" stroke="#378A52" stroke-width="1.6"/>',
+      under: both('<path d="M33 45l-14-9l11 16z" fill="' + SKIN + '"/>'),
+      head: '<path d="M32 42q2-16 18-17q16 1 18 17q-5-6-9-6q-3 4-9 4q-6 0-9-4q-4 0-9 6z" fill="#FFD46B"/>' +
+        '<path d="M29 44q0-26 21-26q21 0 21 26q-4-13-21-14q-17 1-21 14z" fill="#4CAF6A"/><path d="M50 18q-1-6 4-9" fill="none" stroke="#378A52" stroke-width="2"/>',
+      face: { y: 47, g: 7, r: 3.6, iris: '#4CAF6A', m: 'smile', w: 2.6 },
+      front: hand(29, 72) + hand(67, 74)
+    })],
+
+    // 19. Nain
+    ['Barbichu', hero({
+      feet: '#6B4A35', body: '#D9534F', body2: '#B33E3A',
+      deco: '<path d="M33.5 80h33" fill="none" stroke="#6B4A35" stroke-width="3.5" stroke-linecap="butt"/>',
+      back: '<path d="M70 90L74 50" fill="none" stroke="' + INK + '" stroke-width="7"/><path d="M70 90L74 50" fill="none" stroke="#A8723C" stroke-width="3.5"/>' +
+        '<g transform="rotate(6 74 46)">' + S('rect x="64" y="38" width="20" height="13" rx="3"', '#C9D3E0', '#9AA8BC', 1.5) + '<path d="M68 38v13M80 38v13" fill="none" stroke-width="1.3"/></g>',
+      head: S('path d="M32 50q-2 20 10 26q8 4 16 0q12-6 10-26q-5 6-18 6q-13 0-18-6z"', '#E8853A', '#C96A22', 2) +
+        '<path d="M44 62q2 4 0 8M56 62q-2 4 0 8M50 64v9" fill="none" stroke="#C96A22" stroke-width="1.5"/>' +
+        '<circle cx="50" cy="77" r="2.5" fill="#FFC93C" stroke-width="1.5"/>' +
+        '<path d="M41 54q4-4 9-1q5-3 9 1q-4 5-9 2q-5 3-9-2z" fill="#C96A22" stroke-width="1.6"/>' +
+        S('circle cx="50" cy="50" r="3.8"', '#FFB8A0', '#F09A82', 1) +
+        both('<path d="M32 36q-13-1-16-14q7 6 15 5z" fill="#FFF1DC"/>') +
+        S('path d="M30 40q0-19 20-19q20 0 20 19z"', '#C9D3E0', '#9AA8BC', 2) +
+        '<rect x="29" y="37" width="42" height="6" rx="2" fill="#FFC93C" stroke-width="1.8"/><path d="M50 22v15" fill="none" stroke="#9AA8BC" stroke-width="1.5"/>' + hi(39, 29, 3, 1.6, -30),
+      face: { y: 46, g: 7.5, r: 3.4, iris: '#8A5A3C', m: 'none', by: 51, bg: 11 },
+      front: hand(33, 73) + hand(71, 70)
+    })],
+
+    // 20. Sorcière
+    ['Sorcinette', hero({
+      back: '<path d="M31 40q-7 26 3 33l7-13zM69 40q7 26-3 33l-7-13z" fill="#E85D3C"/>',
+      feet: '#3D3360', body: '#8E5CC9', body2: '#7043AE',
+      deco: '<path d="M33 86l4-5l4 5l4-5l4 5l4-5l4 5l4-5l4 5l2-3" fill="#3D3360" stroke-width="1.8"/>',
+      head: '<path d="M31 44q1-18 19-19q18 1 19 19q-4-7-10-8q-3 4-9 4q-6 0-9-4q-6 1-10 8z" fill="#E85D3C"/>' +
+        S('path d="M35 30L52 2q2-2 3 1L65 30z"', '#4B3D78', '#33295A', 2) +
+        '<path d="M36 26q14 4 28 0l1.2 4.5q-15 4.5-30.4 0z" fill="#B79CFF" stroke-width="1.8"/><rect x="47" y="25.5" width="6" height="5.5" rx="1" fill="#FFC93C" stroke-width="1.4"/>' +
+        S('ellipse cx="50" cy="31" rx="27" ry="5"', '#4B3D78', '#33295A', 1) + star(57, 14, 2.5, '#FFE066'),
+      face: { y: 47, g: 7, r: 3.6, iris: '#5BBF7A', m: 'open', w: 2.8 },
+      front: '<g fill="#CFF7C2" stroke-width="1.5" opacity=".9"><circle cx="27" cy="52" r="2.5"/><circle cx="31" cy="46" r="1.6"/><circle cx="24" cy="44" r="1.8"/></g>' +
+        '<rect x="25" y="56" width="6" height="7" rx="1.5" fill="#E3F6FF"/><rect x="24" y="53" width="8" height="4" rx="1.5" fill="#A8723C" stroke-width="1.6"/>' +
+        S('circle cx="28" cy="70" r="8"', '#E3F6FF', '#C3E6F5', 1.5) +
+        '<path d="M20.5 71q7.5 3 15 0a7.5 7.5 0 0 1-15 0z" fill="#7CE07C" stroke="none"/><path d="M20 70a8 8 0 0 0 16 0" fill="none" stroke-width="2.2"/>' + hi(25, 67, 1.6, 2.5) +
+        hand(34, 76) + hand(67, 74) + star(84, 56, 3, '#FFE066') + star(78, 40, 2, '#B79CFF')
+    })],
+
+    // 21. Fantôme
+    ['Fantômi', '<ellipse cx="50" cy="93" rx="16" ry="2.5" fill="' + INK + '" opacity=".1" stroke="none"/>' +
+      S('path d="M26 54q0-30 24-30q24 0 24 30v24q-4 7-8 0q-4-6-8 0q-4 7-8 0q-4-6-8 0q-4 7-8 0q-4-6-8 0z"', '#FFFFFF', '#DCD8F0') +
+      hi(36, 38, 4.5, 2.5, -40) +
+      S('ellipse cx="26" cy="62" rx="5" ry="7" transform="rotate(30 26 62)"', '#FFFFFF', '#DCD8F0', 1.5) +
+      '<rect x="68" y="58" width="7" height="12" rx="1.5" fill="#FFF1B8"/><path d="M71.5 58v-3" fill="none" stroke-width="1.5"/>' +
+      '<circle cx="71.5" cy="50" r="7" fill="#FFF3B0" opacity=".6" stroke="none"/><path d="M71.5 55q-4-3 0-8q4 5 0 8z" fill="#FFB13C" stroke-width="1.5"/>' +
+      '<path d="M64 70h15q0 4-7.5 4q-7.5 0-7.5-4z" fill="#C9D3E0"/>' +
+      S('ellipse cx="73" cy="66" rx="5" ry="6.5" transform="rotate(-30 73 66)"', '#FFFFFF', '#DCD8F0', 1.5) +
+      F({ y: 50, g: 8, r: 4.6, iris: '#B79CFF', m: 'open', w: 3.2 }) + star(16, 30, 3, '#B79CFF') + star(86, 28, 2.5, '#B79CFF')],
+
+    // 22. Bébé dragon dans son œuf
+    ['Coquillou', ground(24) +
+      both('<path d="M36 46Q22 30 14 40Q20 42 20 47Q26 45 30 50z" fill="#B8E6A0"/>') +
+      both('<path d="M36 38l-4-8l7 4z" fill="#FFF1DC" stroke-width="1.8"/>') +
+      S('circle cx="50" cy="50" r="18"', '#7CCB6A', '#5AAE4C') + hi(42, 41, 3, 1.8, -35) +
+      '<g transform="rotate(-12 50 32)">' + S('path d="M38 36l4-4l4 4l4-4l4 4l4-4l4 4q-2-12-12-12q-10 0-12 12z"', '#FFF8EC', '#EBD5B5', 1.5) + '<circle cx="46" cy="29" r="1.8" fill="#8CCB6A" stroke="none"/></g>' +
+      F({ y: 48, g: 7.5, r: 4, iris: '#3E7A3A', m: 'open', w: 2.8 }) +
+      S('path d="M24 62l6 5l5-6l5 6l5-6l5 6l5-6l5 6l5-6l5 6l6-5q2 28-26 28q-28 0-26-28z"', '#FFF8EC', '#EBD5B5') +
+      '<g stroke="none" fill="#B8E6A0"><circle cx="34" cy="76" r="3"/><circle cx="62" cy="80" r="3.5"/><circle cx="54" cy="72" r="2"/><circle cx="42" cy="84" r="2"/></g>' +
+      '<path d="M66 70l3 3l-1 4" fill="none" stroke-width="1.4"/>' +
+      S('ellipse cx="32" cy="64" rx="5" ry="4"', '#7CCB6A', '#5AAE4C', 1) + S('ellipse cx="68" cy="64" rx="5" ry="4"', '#7CCB6A', '#5AAE4C', 1) +
+      star(84, 30, 3) + star(16, 70, 2.5)],
+
+    // 23. Hydre à trois têtes
+    ['Trihydre', ground(26) +
+      tube('M44 70Q32 64 26 52', '#5FD0C0', 7) + tube('M56 70Q68 64 74 52', '#5FD0C0', 7) + tube('M50 68V40', '#5FD0C0', 8) +
+      '<path d="M64 80q18 4 18-8q-4 2-8 0q0 6-12 4z" fill="#5FD0C0"/>' +
+      S('ellipse cx="42" cy="87" rx="6" ry="4"', '#5FD0C0', '#3FB0A0', 1) + S('ellipse cx="58" cy="87" rx="6" ry="4"', '#5FD0C0', '#3FB0A0', 1) +
+      S('ellipse cx="50" cy="76" rx="18" ry="12"', '#5FD0C0', '#3FB0A0') + S('ellipse cx="50" cy="79" rx="10" ry="7"', '#FFF1C8', '#F2D9A0', 1.5) +
+      '<path d="M43 77h14M44 81h12" fill="none" stroke="#E2C27A" stroke-width="1.3"/>' +
+      '<path d="M18 40l3 5l-5 1z M82 40l-3 5l5 1z" fill="#FFC93C" stroke-width="1.5"/>' +
+      S('circle cx="25" cy="48" r="10"', '#5FD0C0', '#3FB0A0', 2) + S('circle cx="75" cy="48" r="10"', '#5FD0C0', '#3FB0A0', 2) +
+      '<path d="M44 24l2-8l4 5l4-5l2 8" fill="#FFC93C" stroke-width="1.6"/>' +
+      S('circle cx="50" cy="35" r="12"', '#5FD0C0', '#3FB0A0', 2) +
+      F({ x: 50, y: 34, g: 5, r: 2.9, iris: '#FFE066', m: 'open', w: 2.4, my: 40 }) +
+      F({ x: 25, y: 47, g: 4.2, r: 2.3, happy: true, m: 'smile', w: 2, my: 52 }) +
+      F({ x: 75, y: 47, g: 4.2, r: 2.4, iris: '#FFE066', m: 'cat', w: 1.8, my: 52 })],
+
+    // 24. Renard aux trois queues
+    ['Renardeau', ground(22) +
+      '<g transform="rotate(8 58 80)">' + S('path d="M56 78q-6-26 6-36q8 16-6 36z"', '#F59A3C', '#D97A22', 1.5) + '<path d="M58.6 49q2.4-4 3.4-7q5 7 2 14q-2-5-5.4-7z" fill="#fff"/></g>' +
+      '<g transform="rotate(38 58 80)">' + S('path d="M56 78q-6-26 6-36q8 16-6 36z"', '#F59A3C', '#D97A22', 1.5) + '<path d="M58.6 49q2.4-4 3.4-7q5 7 2 14q-2-5-5.4-7z" fill="#fff"/></g>' +
+      '<g transform="rotate(68 58 80)">' + S('path d="M56 78q-6-26 6-36q8 16-6 36z"', '#F59A3C', '#D97A22', 1.5) + '<path d="M58.6 49q2.4-4 3.4-7q5 7 2 14q-2-5-5.4-7z" fill="#fff"/></g>' +
+      S('path d="M36 88q-4-24 14-26q18 2 14 26z"', '#F59A3C', '#D97A22') +
+      '<path d="M43 64q7 4 14 0q0 14-7 20q-7-6-7-20z" fill="#FFF8EE"/>' +
+      S('ellipse cx="43" cy="87" rx="5" ry="3.5"', '#FFF8EE', '#E8DCC8', 1) + S('ellipse cx="57" cy="87" rx="5" ry="3.5"', '#FFF8EE', '#E8DCC8', 1) +
+      both('<path d="M33 40l-2-18l14 10z" fill="#F59A3C"/><path d="M34 36l-1-9l7 5z" fill="#4A2033" stroke="none"/>') +
+      S('path d="M29 46q0-18 21-18q21 0 21 18q0 7-7 11q-6 4-14 4q-8 0-14-4q-7-4-7-11z"', '#F59A3C', '#D97A22') +
+      '<path d="M29.5 49q8 0 13 5q4 5 7.5 7q-8 0-14-4q-5.5-3-6.5-8zM70.5 49q-8 0-13 5q-4 5-7.5 7q8 0 14-4q5.5-3 6.5-8z" fill="#FFF8EE" stroke="none"/>' +
+      '<path d="M50 34q-3-4 0-7q3 3 0 7z" fill="#B79CFF" stroke-width="1.3"/>' +
+      F({ y: 45, g: 8, r: 3.8, iris: '#FFC93C', m: 'cat', w: 2.2, my: 55 }) + '<ellipse cx="50" cy="53" rx="2" ry="1.4" fill="' + INK + '" stroke="none"/>' +
+      '<circle cx="82" cy="26" r="8" fill="#B5F0FF" opacity=".5" stroke="none"/><path d="M82 32q-7-3-4-10q1 3 3 2q0-5 4-7q4 6 1 11q-1 3-4 4z" fill="#6EC6FF" stroke-width="1.6"/>'],
+
+    // 25. Petit kraken
+    ['Krakou', '<ellipse cx="50" cy="91" rx="26" ry="3" fill="' + INK + '" opacity=".12" stroke="none"/>' +
+      tube('M34 62Q20 74 26 84Q30 88 33 84', '#A77BE8', 6) + tube('M66 62Q80 74 74 84Q70 88 67 84', '#A77BE8', 6) +
+      tube('M42 66Q34 80 40 88Q44 90 45 86', '#A77BE8', 6) + tube('M58 66Q66 80 60 88Q56 90 55 86', '#A77BE8', 6) +
+      '<g fill="#E9D9FF" stroke="none"><circle cx="24" cy="76" r="1.3"/><circle cx="76" cy="76" r="1.3"/><circle cx="37" cy="78" r="1.3"/><circle cx="63" cy="78" r="1.3"/></g>' +
+      S('path d="M26 60q0-34 24-34q24 0 24 34q0 8-24 8q-24 0-24-8z"', '#A77BE8', '#8559CC') +
+      '<g fill="#8559CC" stroke="none"><circle cx="34" cy="38" r="2.5"/><circle cx="66" cy="42" r="3"/><circle cx="62" cy="34" r="1.8"/></g>' + hi(37, 34, 4, 2.4, -40) +
+      '<path d="M38 26l-2-10l7 5l7-9l7 9l7-5l-2 10q-12 3-24 0z" fill="#FFC93C" stroke-width="2"/><g stroke-width="1.2"><circle cx="50" cy="20" r="2" fill="#FF5470"/><circle cx="41" cy="22" r="1.3" fill="#6EC6FF"/><circle cx="59" cy="22" r="1.3" fill="#6EC6FF"/></g>' +
+      F({ y: 50, g: 9, r: 4.4, iris: '#E9D9FF', m: 'open', w: 3 }) +
+      '<g fill="#E3F6FF" stroke-width="1.4"><circle cx="84" cy="40" r="3"/><circle cx="88" cy="30" r="2"/><circle cx="16" cy="48" r="2.5"/></g>'],
+
+    // 26. Golem de cristal
+    ['Cristallin', ground(24) +
+      '<path d="M30 56l-6-16l9 10zM70 56l6-16l-9 10z" fill="#FF9EC4"/><path d="M34 54l-1-12l5 9zM66 54l1-12l-5 9z" fill="#7DE3E0"/>' +
+      S('path d="M38 82h9v6h-9zM53 82h9v6h-9z"', '#9B8CFF', '#7A69E8', 1) +
+      S('path d="M32 58l18-8l18 8v20l-18 8l-18-8z"', '#9B8CFF', '#7A69E8') +
+      '<path d="M32 58l18 7l18-7M50 65v21" fill="none" stroke-width="1.5"/><path d="M33 59l17 6.5v19.5l-17-7.5z" fill="#B7ABFF" stroke="none" opacity=".7"/>' +
+      '<circle cx="50" cy="74" r="6" fill="#FFB3D9" opacity=".5" stroke="none"/><path d="M50 69l4 5l-4 5l-4-5z" fill="#FF6F91" stroke-width="1.6"/>' +
+      S('path d="M20 62l7-4l6 6l-3 12l-7 2l-5-6z"', '#9B8CFF', '#7A69E8', 1.5) + S('path d="M80 62l-7-4l-6 6l3 12l7 2l5-6z"', '#9B8CFF', '#7A69E8', 1.5) +
+      S('path d="M33 38l9-14h16l9 14l-5 14h-24z"', '#C9B8FF', '#A592F2') +
+      '<path d="M42 24l8 8l8-8M33 38l17-6l17 6" fill="none" stroke-width="1.4"/><path d="M42 24.5l8 7.5l8-7.5z" fill="#E8E0FF" stroke="none"/>' +
+      F({ y: 42, g: 7, r: 3.5, iris: '#FF9EC4', m: 'smile', w: 2.6 }) + star(14, 40, 3, '#fff') + star(86, 44, 3.5, '#fff') + star(80, 22, 2, '#fff')],
+
+    // 27. Petit troll
+    ['Trollinet', ground(24) +
+      
+      S('ellipse cx="41" cy="86" rx="7" ry="4.5"', '#6FB7C7', '#4E97A8', 1) + S('ellipse cx="59" cy="86" rx="7" ry="4.5"', '#6FB7C7', '#4E97A8', 1) +
+      both('<path d="M30 48q-16-2-20-12q10 0 22 6z" fill="#6FB7C7"/><path d="M28 46q-9-1-13-6q6 0 13 3z" fill="#FF9EC4" stroke="none"/>') +
+      S('circle cx="50" cy="60" r="23"', '#6FB7C7', '#4E97A8') +
+      S('ellipse cx="50" cy="72" rx="13" ry="9"', '#A8DCE5', '#86C4CF', 1.5) +
+      '<path d="M32 76q18 8 36 0l-2 8q-16 5-32 0z" fill="#B5763A"/><g fill="#8A5A3C" stroke="none"><circle cx="40" cy="81" r="1.5"/><circle cx="52" cy="82" r="1.5"/><circle cx="61" cy="80" r="1.3"/></g>' +
+      '<path d="M44 38q-6-10 0-12q2 6 6 4q0-8 6-8q-2 6 2 10q4-4 8-2q-4 4-6 10z" fill="#FF8F3C" stroke-width="2"/>' +
+      S('circle cx="50" cy="56" r="5"', '#86C4CF', '#5FA5B3', 1.5) + hi(39, 44, 3.5, 2, -35) +
+      F({ y: 50, g: 9, r: 3.8, iris: '#FFE066', m: 'smile', my: 63, w: 4, by: 57, bg: 16 }) +
+      '<path d="M45 64.5l1.2-3l1.4 3M52.4 64.5l1.4-3l1.2 3" fill="#fff" stroke-width="1.2"/>' +
+      '<g transform="rotate(28 72 72)"><path d="M69 76q-3-28 5-34q10 4 5 34z" fill="#A8723C"/><path d="M71 52q3 2 6 0M72 62q2 2 5 0" fill="none" stroke="#7A5030" stroke-width="1.5"/></g>' + S('ellipse cx="71" cy="70" rx="5" ry="5.5"', '#6FB7C7', '#4E97A8', 1) + S('ellipse cx="29" cy="68" rx="5" ry="5.5"', '#6FB7C7', '#4E97A8', 1)],
+
+    // 28. Chauve-souris
+    ['Chauvi', '<ellipse cx="50" cy="92" rx="14" ry="2.5" fill="' + INK + '" opacity=".1" stroke="none"/>' +
+      both('<path d="M34 54Q20 34 4 44Q10 48 10 54Q16 52 19 58Q24 54 28 61Q31 58 35 62z" fill="#7A6E94"/><path d="M33 55L8 46M33 57L17 55M33 59L26 60" fill="none" stroke-width="1.3"/>') +
+      both('<path d="M34 40l-4-18l14 10z" fill="#5B5070"/><path d="M35 36l-2-9l7 5z" fill="#FF9EC4" stroke="none"/>') +
+      '<path d="M45 77l-1 5M55 77l1 5" fill="none" stroke-width="2.2"/>' +
+      S('circle cx="50" cy="56" r="20"', '#5B5070', '#463D58') + S('ellipse cx="50" cy="66" rx="10" ry="8"', '#8E84A8', '#776D92', 1.5) +
+      '<path d="M44 38q6 4 12 0" fill="none" stroke="#7A6E94" stroke-width="1.6"/>' + hi(40, 46, 3.5, 2, -35) +
+      F({ y: 53, g: 8, r: 4.4, iris: '#FF8FA8', m: 'smile', w: 3.2 }) +
+      '<path d="M47 60.5l1.2 2.6l1.2-2.6M50.6 60.5l1.2 2.6l1.2-2.6" fill="#fff" stroke-width="1"/>' +
+      star(18, 24, 3, '#FFE066') + star(82, 22, 3.5, '#FFE066')],
+
+    // 29. Gnome à la lanterne
+    ['Gnomi', hero({
+      feet: '#8A5A3C', body: '#4F8FE8', body2: '#3A70C8',
+      deco: '<path d="M33.5 79h33" fill="none" stroke="#8A5A3C" stroke-width="3" stroke-linecap="butt"/>',
+      head: S('path d="M33 50q-1 22 17 26q18-4 17-26q-6 7-17 7q-11 0-17-7z"', '#fff', '#DCDCEF', 2) +
+        '<path d="M42 56q4-3 8 0q4-3 8 0q-4 4-8 1.5q-4 2.5-8-1.5z" fill="#fff" stroke-width="1.6"/>' +
+        S('circle cx="50" cy="51" r="4.5"', '#FF9E8A', '#EE7F6A', 1) +
+        S('path d="M29 42q2-30 28-38q-4 12 2 20q8 10 12 18q-21 6-42 0z"', '#E8455A', '#C7334A') + hi(40, 26, 3, 1.6, -45) +
+        '<path d="M29 42q21 6 42 0" fill="none" stroke="#C7334A" stroke-width="1.4"/>',
+      face: { y: 46, g: 7.5, r: 3.3, iris: '#4F8FE8', m: 'none', by: 51, bg: 12 },
+      front: hand(33, 73) +
+        '<circle cx="72" cy="78" r="11" fill="#FFF3B0" opacity=".55" stroke="none"/>' +
+        '<path d="M68 70q4-6 8 0" fill="none" stroke-width="1.8"/><rect x="66" y="70" width="12" height="3" rx="1.5" fill="#3D3360" stroke-width="1.5"/>' +
+        '<rect x="67" y="73" width="10" height="11" rx="2" fill="#FFE066"/><path d="M72 76q-2 2 0 5q2-3 0-5z" fill="#FF8F3C" stroke="none"/>' +
+        '<rect x="66" y="84" width="12" height="3" rx="1.5" fill="#3D3360" stroke-width="1.5"/>' + hand(70, 69)
+    })],
+
+    // 30. Yéti
+    ['Yétou', ground(26) +
+      both('<path d="M37 41l-6-12l10 6z" fill="#C9D3E0" stroke-width="1.8"/>') +
+      S('ellipse cx="41" cy="86" rx="7" ry="4.5"', '#BFE3F7', '#94CBEA', 1) + S('ellipse cx="59" cy="86" rx="7" ry="4.5"', '#BFE3F7', '#94CBEA', 1) +
+      S(fluff(50, 60, 24, 25, 16, 6), '#FFFFFF', '#D8E6F2') +
+      S('ellipse cx="50" cy="52" rx="14" ry="12"', '#BFE3F7', '#94CBEA', 1.5) +
+      F({ y: 50, g: 6.5, r: 3.6, iris: '#4A8FE0', m: 'open', w: 3, my: 56 }) +
+      S(fluff(26, 68, 6, 7, 8, 3), '#FFFFFF', '#D8E6F2', 1) +
+      S('circle cx="73" cy="70" r="8"', '#F5FBFF', '#CFE4F2', 1.5) + hi(70, 67, 2, 1.4) + S(fluff(70, 74, 5, 6, 8, 2.6), '#FFFFFF', '#D8E6F2', 1) +
+      '<g fill="none" stroke="#8FD3F4" stroke-width="1.6"><path d="M14 30v10M9 35h10M10.5 31.5l7 7M17.5 31.5l-7 7"/><path d="M86 22v8M82 26h8M83 23l6 6M89 23l-6 6"/></g>']
+  ];
+
+  /* ---------- Sons, étoiles, confettis ---------- */
+  var audio = null;
+  var SOUNDS = {
+    ok: [{ f: 880, at: 0, d: 0.12 }, { f: 1320, at: 0.08, d: 0.18 }],
+    ko: [{ f: 220, at: 0, d: 0.25, type: 'triangle' }],
+    win: [{ f: 523, at: 0, d: 0.18 }, { f: 659, at: 0.12, d: 0.18 }, { f: 784, at: 0.24, d: 0.18 }, { f: 1047, at: 0.36, d: 0.45 }]
+  };
+  function sound(name) {
+    if (!prefs.sound) return;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume();
+      var t0 = audio.currentTime;
+      SOUNDS[name].forEach(function (n) {
+        var o = audio.createOscillator(), g = audio.createGain();
+        o.type = n.type || 'sine'; o.frequency.value = n.f;
+        g.gain.setValueAtTime(0.0001, t0 + n.at);
+        g.gain.exponentialRampToValueAtTime(0.15, t0 + n.at + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + n.at + n.d);
+        o.connect(g); g.connect(audio.destination);
+        o.start(t0 + n.at); o.stop(t0 + n.at + n.d + 0.05);
+      });
+    } catch (e) {}
+  }
+  function calm() { return !prefs.anim || window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  function confetti() {
+    if (calm()) return;
+    var box = document.createElement('div');
+    box.className = 'confetti'; box.setAttribute('aria-hidden', 'true');
+    var colors = ['var(--sun)', 'var(--accent)', 'var(--good)', 'var(--bad)'];
+    for (var i = 0; i < 70; i++) {
+      var p = document.createElement('i');
+      p.style.left = Math.random() * 100 + '%';
+      p.style.background = colors[i % colors.length];
+      p.style.animationDelay = Math.random() * 0.6 + 's';
+      p.style.animationDuration = 1.6 + Math.random() * 1.2 + 's';
+      p.style.setProperty('--dx', Math.random() * 160 - 80 + 'px');
+      p.style.setProperty('--r', Math.random() * 720 - 360 + 'deg');
+      box.appendChild(p);
+    }
+    document.body.appendChild(box);
+    setTimeout(function () { box.remove(); }, 3600);
+  }
+  function burst(el) {
+    if (calm()) return;
+    var r = el.getBoundingClientRect(), box = document.createElement('div');
+    box.className = 'burst'; box.setAttribute('aria-hidden', 'true');
+    box.style.left = r.left + r.width / 2 + 'px'; box.style.top = r.top + Math.min(r.height / 2, 120) + 'px';
+    var colors = ['var(--sun)', 'var(--sun)', 'var(--good)', 'var(--accent)'];
+    for (var i = 0; i < 14; i++) {
+      var p = document.createElement('i'), ang = (i / 14) * Math.PI * 2 + Math.random() * 0.4, dist = 110 + Math.random() * 70;
+      p.textContent = '★';
+      p.style.setProperty('--c', colors[i % colors.length]);
+      p.style.setProperty('--s', 18 + Math.random() * 16 + 'px');
+      p.style.setProperty('--x', Math.cos(ang) * dist + 'px');
+      p.style.setProperty('--y', Math.sin(ang) * dist * 0.8 + 'px');
+      p.style.setProperty('--r', Math.random() * 360 - 180 + 'deg');
+      box.appendChild(p);
+    }
+    document.body.appendChild(box);
+    setTimeout(function () { box.remove(); }, 1000);
+  }
+  function replay(el, cls) { el.classList.remove('anim-bravo', 'anim-non'); void el.offsetWidth; el.classList.add(cls); }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  var bag = [], lastCreature = null, buddyTimer = null;
+  function nextCreature() {
+    if (!bag.length) { bag = shuffle(CREATURES.slice()); if (bag[0] === lastCreature) bag.push(bag.shift()); }
+    lastCreature = bag.shift();
+    return lastCreature;
+  }
+  function showCreature(n, text, stay) {
+    if (!prefs.anim) return;
+    var c = nextCreature(), b = $('#buddy' + n), bubble = $('#bubble' + n);
+    $('#buddyArt' + n).innerHTML = '<g stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">' + c[1] + '</g>';
+    bubble.textContent = text || ''; bubble.hidden = !text;
+    b.classList.remove('on'); void b.offsetWidth; b.classList.add('on');
+    clearTimeout(buddyTimer);
+    if (!stay) buddyTimer = setTimeout(function () { b.classList.remove('on'); }, 2600);
+  }
+  function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+  /* ---------- Écrans ---------- */
+  var views = {};
+  ['home', 'settings', 'how', 'texts', 'add', 'prep', 'read', 'result', 'quiz', 'missed', 'done', 'parent'].forEach(function (k) { views[k] = $('#' + k); });
+  function show(name) {
+    hush();
+    Object.keys(views).forEach(function (k) { views[k].hidden = (k !== name); });
+    document.body.classList.toggle('playing', name === 'read');
+    window.scrollTo(0, 0);
+    if (name === 'home') renderHome();
+    if (name === 'read') keepAwake(true); else keepAwake(false);
+  }
+  document.addEventListener('click', function (e) {
+    var g = e.target.closest('[data-go]');
+    if (g) show(g.getAttribute('data-go'));
+  });
+  // L'écran reste allumé pendant la lecture (si l'appareil le permet).
+  var lock = null;
+  function keepAwake(on) {
+    try {
+      if (on && !lock && navigator.wakeLock) navigator.wakeLock.request('screen').then(function (l) { lock = l; }).catch(function () {});
+      if (!on && lock) { lock.release(); lock = null; }
+    } catch (e) {}
+  }
+
+  /* ---------- Accueil ---------- */
+  var DAYS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+  function renderHome() {
+    var t = curText(), st = tstate(t.id), hs = textHist(t.id), n = wordCount(t.texte);
+    $('#curTitle').textContent = t.titre;
+    var meta = '<span class="pastille">' + n + ' mots</span>';
+    if (st.done) meta += '<span class="pastille menthe">🏆 Texte maîtrisé</span>';
+    else if (!st.sessions) meta += '<span class="badge-nouveau">Nouveau</span>';
+    else meta += '<span class="pastille">Séance ' + (st.sessions + 1) + '</span>';
+    if (hs.length) meta += '<span class="pastille soleil">★ Record : ' + Math.max.apply(null, hs.map(function (h) { return h.m; })) + ' mots/min</span>';
+    $('#curMeta').innerHTML = meta;
+    $('#curChart').innerHTML = hs.length ? textChart(t.id, 130) : '';
+    var note = '';
+    if (data.days.indexOf(today()) >= 0) note = 'Séance du jour faite. Bravo, à demain ! Tu peux quand même en refaire une.';
+    else if (st.sessions >= 5) note = 'Tu as lu ce texte 5 fois : tu peux passer à un nouveau texte.';
+    else if (st.sessions >= 3) note = 'Encore une ou deux séances, puis tu pourras changer de texte.';
+    else if (!st.sessions) note = 'Pour un texte nouveau, on l’écoute d’abord.';
+    $('#curNote').textContent = note;
+    $('#startBtn').textContent = data.days.indexOf(today()) >= 0 ? 'Refaire une séance' : 'Commencer la séance';
+
+    var w = '', d = new Date();
+    d.setDate(d.getDate() - 6);
+    for (var i = 0; i < 7; i++) {
+      var key = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+      var on = data.days.indexOf(key) >= 0;
+      w += '<div' + (i === 6 ? ' class="today"' : '') + '><i class="' + (on ? 'on' : '') + '">' + (on ? '✓' : '') + '</i>' + (i === 6 ? 'Auj.' : DAYS[d.getDay()]) + '</div>';
+      d.setDate(d.getDate() + 1);
+    }
+    $('#week').innerHTML = w;
+    var tro = allTexts().filter(function (x) { return data.texts[x.id] && data.texts[x.id].done; });
+    $('#trophies').innerHTML = tro.length
+      ? tro.map(function (x) { return '<span class="pastille soleil">🏆 ' + esc(x.titre) + '</span>'; }).join('')
+      : '<p class="hint">Un trophée arrive quand un texte est maîtrisé (5 séances).</p>';
+  }
+  function renderSettings() {
+    document.querySelectorAll('[data-size]').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.getAttribute('data-size') === prefs.size)); });
+    $('#optSyl').checked = !!prefs.syl;
+    $('#optBands').checked = !!prefs.bands;
+    $('#optSound').checked = !!prefs.sound;
+    $('#optAnim').checked = !!prefs.anim;
+    renderText($('#sizeDemo'), 'Le petit dragon lit son livre dans la grotte, avec la chouette.');
+  }
+  $('#gearBtn').addEventListener('click', function () { show('settings'); renderSettings(); });
+  document.querySelectorAll('[data-size]').forEach(function (b) {
+    b.addEventListener('click', function () { prefs.size = +b.getAttribute('data-size'); savePrefs(); renderSettings(); });
+  });
+  [['optSyl', 'syl'], ['optBands', 'bands'], ['optSound', 'sound'], ['optAnim', 'anim']].forEach(function (p) {
+    $('#' + p[0]).addEventListener('change', function (e) { prefs[p[1]] = e.target.checked; savePrefs(); renderSettings(); });
+  });
+  $('#howBtn').addEventListener('click', function () { show('how'); });
+  $('#textsBtn').addEventListener('click', function () { renderTexts(); show('texts'); });
+  $('#parentBtn').addEventListener('click', function () { renderParent(); show('parent'); });
+  $('#startBtn').addEventListener('click', function () {
+    var t = curText();
+    if (!tstate(t.id).sessions) { renderPrep(t); show('prep'); }
+    else startSession(t);
+  });
+
+  /* ---------- Choix et ajout de textes ---------- */
+  function renderTexts() {
+    var cur = curText().id;
+    $('#tlist').innerHTML = allTexts().map(function (t) {
+      var st = data.texts[t.id] || { sessions: 0 }, hs = textHist(t.id);
+      var tags = '<span>' + wordCount(t.texte) + ' mots</span>';
+      if (st.done) tags += '<span class="pastille menthe">🏆 Maîtrisé</span>';
+      else if (st.sessions) tags += '<span class="pastille">' + plural(st.sessions, 'séance', 'séances') + '</span>';
+      else tags += '<span class="badge-nouveau">Nouveau</span>';
+      if (hs.length) tags += '<span>record ' + Math.max.apply(null, hs.map(function (h) { return h.m; })) + ' mots/min</span>';
+      if (t.mine) tags += '<span class="pastille rose">Mon texte</span>';
+      return '<li><button class="pick" type="button" data-id="' + t.id + '"' + (t.id === cur ? ' aria-current="true"' : '') + '><span class="tt">' + esc(t.titre) + '</span><span class="tm">' + tags + '</span></button>' +
+        (t.mine ? '<button class="link" type="button" data-del="' + t.id + '">Supprimer ce texte</button>' : '') + '</li>';
+    }).join('');
+  }
+  var delArmed = null;
+  $('#tlist').addEventListener('click', function (e) {
+    var p = e.target.closest('[data-id]'), d = e.target.closest('[data-del]');
+    if (p) { data.cur = p.getAttribute('data-id'); saveData(); show('home'); return; }
+    if (d) {
+      var id = d.getAttribute('data-del');
+      if (delArmed !== id) { delArmed = id; d.textContent = 'Toucher encore pour supprimer'; return; }
+      mine = mine.filter(function (t) { return t.id !== id; });
+      saveMine();
+      if (data.cur === id) data.cur = null;
+      delArmed = null;
+      renderTexts();
+    }
+  });
+  function addUpdate() {
+    var n = wordCount($('#addText').value);
+    $('#addCount').textContent = plural(n, 'mot', 'mots') + '. Entre 80 et 150 mots, c’est l’idéal.';
+    $('#addSave').disabled = n < 10 || !$('#addTitle').value.trim();
+  }
+  $('#addBtn').addEventListener('click', function () { $('#addTitle').value = ''; $('#addText').value = ''; addUpdate(); show('add'); });
+  $('#addTitle').addEventListener('input', addUpdate);
+  $('#addText').addEventListener('input', addUpdate);
+  $('#addSave').addEventListener('click', function () {
+    var t = { id: 'm' + Date.now().toString(36), titre: $('#addTitle').value.trim().slice(0, 60), texte: normalize($('#addText').value), mots: [], question: null, mine: true };
+    mine.push(t); saveMine();
+    data.cur = t.id; saveData();
+    show('home');
+  });
+
+  /* ---------- Préparation d'un texte nouveau ---------- */
+  var prepFor = null;
+  function renderPrepVoice() {
+    var ok = !!frVoice();
+    $('#listenBtn').hidden = !ok;
+    $('#prepHow').textContent = ok
+      ? 'Touche le bouton : la voix lit le texte lentement. Ou bien l’adulte le lit lui-même, en articulant.'
+      : 'L’adulte lit le texte lentement, en articulant, pendant que l’enfant suit des yeux.';
+  }
+  function renderPrep(t) {
+    prepFor = t;
+    $('#prepTitle').textContent = t.titre;
+    renderPrepVoice();
+    var mots = t.mots || [];
+    $('#glossPanel').hidden = !mots.length;
+    $('#gloss').innerHTML = mots.map(function (m) { return '<li><b>' + esc(m[0]) + '</b>' + esc(m[1]) + '</li>'; }).join('');
+    setTimeout(function () { renderText($('#prepText'), t.texte); }, 0);
+  }
+  $('#listenBtn').addEventListener('click', function () {
+    var el = $('#prepText'), btn = $('#listenBtn');
+    if (btn.dataset.on) { hush(); return; }
+    var spans = el.querySelectorAll('.w[data-i]'), offs = el._offsets;
+    btn.dataset.on = '1'; btn.textContent = '■ Arrêter';
+    speak(el._plain, 0.8, function (ci) {
+      var k = 0;
+      while (k + 1 < offs.length && offs[k + 1] <= ci) k++;
+      spans.forEach(function (s, i) { s.classList.toggle('say', i === k); });
+    }, function () {
+      delete btn.dataset.on; btn.textContent = '🔊 Écouter le texte';
+      spans.forEach(function (s) { s.classList.remove('say'); });
+    });
+  });
+  $('#prepGo').addEventListener('click', function () { startSession(prepFor); });
+
+  /* ---------- Séance : 3 lectures chronométrées ---------- */
+  var R = null;
+  function startSession(t) {
+    var st = tstate(t.id);
+    R = { t: t, s: st.sessions + 1, n: 0, results: [], missed: {}, firstTime: !st.asked && !!t.question };
+    nextReading();
+  }
+  function nextReading() {
+    R.n++;
+    R.state = 'ready'; R.miss = {}; R.stop = null; R.t0 = 0; R.sec = 0;
+    show('read');
+    R.words = renderText($('#readText'), R.t.texte, { tap: true });
+    $('#page').scrollTop = 0;
+    $('#readLbl').textContent = 'Lecture ' + R.n + ' sur ' + READINGS;
+    document.querySelectorAll('#steps i').forEach(function (i, k) { i.className = k < R.n - 1 ? 'on' : (k === R.n - 1 ? 'now' : ''); });
+    renderControls();
+  }
+  function renderControls() {
+    var c = $('#controls'), say = $('#sayLine');
+    if (R.state === 'ready') {
+      say.innerHTML = R.n === 1 ? 'Quand tu es prêt, l’adulte lance le chrono et tu lis à voix haute.' : 'On relit le même texte <b>depuis le début</b>.';
+      c.innerHTML = '<div class="row"><button class="btn btn-action" type="button" id="goBtn">▶ Lancer le chrono</button></div>';
+    } else if (R.state === 'run') {
+      say.innerHTML = '<span><span class="clock">Lecture en cours</span><br>Adulte : touche les mots ratés.</span>';
+      c.innerHTML = '<div class="row"><button class="btn btn-ok" type="button" id="stopBtn">■ Fini !</button></div>';
+    } else if (R.state === 'end') {
+      say.innerHTML = 'Il s’est arrêté avant la fin ? <b>Touche le dernier mot lu.</b>';
+      c.innerHTML = '<div class="row"><button class="btn" type="button" id="endAll">Il a tout lu</button><button class="btn btn-action" type="button" id="okBtn">Valider</button></div>';
+    } else {
+      var e = Object.keys(R.miss).length;
+      say.innerHTML = 'Lu en <b>' + fmtTime(R.sec) + '</b>, ' + plural(e, 'mot raté', 'mots ratés') + '. Tu peux encore corriger en touchant un mot.';
+      c.innerHTML = '<div class="row"><button class="btn btn-action" type="button" id="okBtn">Valider la lecture</button></div>' +
+        '<div class="foot"><button class="link" type="button" id="endBtn">Il n’a pas fini le texte</button><button class="link" type="button" id="redoBtn">Recommencer cette lecture</button></div>';
+    }
+  }
+  function fmtTime(s) { s = Math.round(s); return Math.floor(s / 60) + ' min ' + ('0' + s % 60).slice(-2) + ' s'; }
+  function startClock() { R.state = 'run'; R.t0 = performance.now(); renderControls(); }
+  function stopClock() { R.sec = Math.max(1, (performance.now() - R.t0) / 1000); R.state = 'stop'; renderControls(); }
+  $('#controls').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    if (b.id === 'goBtn') startClock();
+    else if (b.id === 'stopBtn') stopClock();
+    else if (b.id === 'endBtn') { R.state = 'end'; renderControls(); }
+    else if (b.id === 'endAll') { R.stop = null; paintStop(); R.state = 'stop'; renderControls(); }
+    else if (b.id === 'okBtn') finishReading();
+    else if (b.id === 'redoBtn') { R.n--; nextReading(); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (views.read.hidden || e.target.closest('input, textarea')) return;
+    if (e.key === ' ' || e.key === 'Enter') {
+      if (R.state === 'ready') { e.preventDefault(); startClock(); }
+      else if (R.state === 'run') { e.preventDefault(); stopClock(); }
+    }
+  });
+  $('#readText').addEventListener('click', function (e) {
+    var w = e.target.closest('.w[data-i]');
+    if (!w || !R || R.state === 'ready') return;
+    var i = +w.getAttribute('data-i');
+    if (R.state === 'end') { R.stop = i; paintStop(); R.state = 'stop'; renderControls(); return; }
+    if (R.stop !== null && i > R.stop) return;
+    if (R.miss[i]) delete R.miss[i]; else R.miss[i] = w.textContent.replace(/[^A-Za-zÀ-ÖØ-öø-ÿŒœÆæ0-9’'-]/g, '');
+    w.classList.toggle('miss', !!R.miss[i]);
+    if (R.state === 'stop') renderControls();
+  });
+  function paintStop() {
+    $('#readText').querySelectorAll('.w[data-i]').forEach(function (w) {
+      var i = +w.getAttribute('data-i');
+      w.classList.toggle('after', R.stop !== null && i > R.stop);
+      w.classList.toggle('last', R.stop === i);
+      if (R.stop !== null && i > R.stop && R.miss[i]) { delete R.miss[i]; w.classList.remove('miss'); }
+    });
+  }
+
+  function finishReading() {
+    var read = R.stop === null ? R.words : R.stop + 1;
+    var errs = Object.keys(R.miss).length;
+    var ok = Math.max(0, read - errs);
+    var m = Math.round(ok * 60 / R.sec);
+    var hs = textHist(R.t.id);
+    var prevBest = hs.length ? Math.max.apply(null, hs.map(function (h) { return h.m; })) : null;
+    var prev = R.results.length ? R.results[R.results.length - 1].m : (hs.length ? hs[hs.length - 1].m : null);
+    var rec = { t: R.t.id, d: today(), s: R.s, r: R.n, w: read, n: R.words, e: errs, sec: Math.round(R.sec), m: m };
+    data.hist.push(rec); saveData();
+    R.results.push(rec);
+    Object.keys(R.miss).forEach(function (i) { R.missed[i] = R.miss[i]; });
+
+    $('#resBig').textContent = m;
+    $('#resDetail').textContent = ok + ' mots justes sur ' + read + ' lus, en ' + fmtTime(R.sec) + '.';
+    var msg, bubble;
+    if (prevBest !== null && m > prevBest) { msg = 'Nouveau record sur ce texte !'; bubble = 'Record !'; }
+    else if (prev !== null && m > prev) { msg = '+' + (m - prev) + ' mots par minute, ta courbe monte !'; bubble = pick(['Ça monte !', 'Super !', 'Bravo !']); }
+    else if (prev === null) { msg = 'Première lecture : c’est ton point de départ.'; bubble = 'C’est parti !'; }
+    else { msg = pick(['Bravo, tu as lu jusqu’au bout !', 'Bel effort, continue comme ça !', 'Bien lu ! On garde le rythme.']); bubble = 'Bravo !'; }
+    $('#resMsg').textContent = msg;
+    $('#resChart').innerHTML = textChart(R.t.id, 150);
+    var quizNext = R.n === 1 && R.firstTime;
+    $('#resNext').textContent = quizNext ? 'Une petite question' : (R.n < READINGS ? 'Lecture ' + (R.n + 1) : 'Relire les mots ratés');
+    if (R.n >= READINGS && !Object.keys(R.missed).length) $('#resNext').textContent = 'Voir mon bilan';
+    show('result');
+    setTimeout(function () {
+      burst($('#resBig'));
+      replay($('#resPanel'), 'anim-bravo');
+      sound(prevBest !== null && m > prevBest ? 'win' : 'ok');
+      if (prevBest !== null && m > prevBest) confetti();
+      showCreature('', bubble);
+    }, 150);
+  }
+  $('#resNext').addEventListener('click', function () {
+    if (R.n === 1 && R.firstTime && !R.quizDone) { renderQuiz(); show('quiz'); return; }
+    if (R.n < READINGS) { nextReading(); return; }
+    showMissed();
+  });
+
+  /* ---------- Question de compréhension ---------- */
+  function renderQuiz() {
+    var q = R.t.question, order = shuffle(q.choix.map(function (c, i) { return i; }));
+    $('#quizQ').textContent = q.q;
+    $('#quizClue').hidden = true; $('#quizClue').textContent = q.indice || '';
+    $('#quizPage').hidden = true;
+    $('#quizChoices').innerHTML = order.map(function (i, k) { return '<button class="choix" type="button" data-c="' + i + '"><span class="lettre">' + 'ABC'[k] + '</span>' + esc(q.choix[i]) + '</button>'; }).join('');
+    $('#quizPanel').classList.remove('a-retenter', 'anim-non');
+  }
+  $('#quizChoices').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-c]');
+    if (!b || b.disabled) return;
+    if (+b.getAttribute('data-c') === R.t.question.bonne) {
+      b.classList.add('bon');
+      $('#quizPanel').classList.remove('a-retenter');
+      document.querySelectorAll('#quizChoices button').forEach(function (x) { x.disabled = x !== b; });
+      tstate(R.t.id).asked = true; saveData();
+      R.quizDone = true;
+      sound('ok'); burst(b);
+      setTimeout(nextReading, 1300);
+    } else {
+      b.disabled = true;
+      $('#quizClue').hidden = !$('#quizClue').textContent;
+      replay($('#quizPanel'), 'anim-non');
+      $('#quizPanel').classList.add('a-retenter');
+      if (navigator.vibrate) navigator.vibrate(60);
+    }
+  });
+  $('#quizText').addEventListener('click', function () {
+    var p = $('#quizPage');
+    p.hidden = !p.hidden;
+    if (!p.hidden) renderText($('#quizTextP'), R.t.texte);
+  });
+
+  /* ---------- Mots ratés, puis bilan ---------- */
+  function showMissed() {
+    var ids = Object.keys(R.missed).map(Number).sort(function (a, b) { return a - b; }), seen = {}, list = [];
+    ids.forEach(function (i) { var w = R.missed[i], k = w.toLowerCase(); if (w && !seen[k]) { seen[k] = 1; list.push(w); } });
+    if (!list.length) { finishSession(); return; }
+    $('#missedWords').innerHTML = list.map(function (w) { return '<button type="button" data-w="' + esc(w) + '">' + sylHTML(w) + '</button>'; }).join('');
+    $('#missedHint').textContent = frVoice() ? 'Lis chaque mot à voix haute, puis touche-le pour l’entendre.' : 'Lis chaque mot à voix haute avec l’adulte, puis touche-le.';
+    show('missed');
+  }
+  $('#missedWords').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-w]');
+    if (!b) return;
+    b.classList.add('done');
+    if (frVoice()) speak(b.getAttribute('data-w'), 0.7);
+  });
+  $('#missedDone').addEventListener('click', finishSession);
+
+  function finishSession() {
+    var st = tstate(R.t.id);
+    st.sessions = R.s;
+    if (st.sessions >= 5 && !st.done) { st.done = true; R.trophy = true; }
+    if (data.days.indexOf(today()) < 0) data.days.push(today());
+    data.days = data.days.slice(-120);
+    saveData();
+    var ms = R.results.map(function (r) { return r.m; });
+    var gain = ms[ms.length - 1] - ms[0];
+    $('#doneTitle').textContent = R.trophy ? '🏆 Texte maîtrisé !' : 'Séance terminée !';
+    var txt = gain > 0 ? 'De ' + ms[0] + ' à ' + ms[ms.length - 1] + ' mots par minute aujourd’hui : +' + gain + ' !' : 'Trois lectures faites, bravo pour ton effort !';
+    if (st.done) txt += ' Tu peux passer à un nouveau texte. Au début, la courbe peut redescendre un peu : c’est normal.';
+    else if (st.sessions >= 3) txt += ' Encore une ou deux séances avec ce texte, ou un nouveau si tu préfères.';
+    $('#doneText').textContent = txt;
+    $('#doneChart').innerHTML = textChart(R.t.id, 150);
+    $('#doneNew').hidden = st.sessions < 3;
+    show('done');
+    setTimeout(function () {
+      sound('win'); confetti();
+      showCreature('2', 'À demain !', true);
+    }, 150);
+  }
+  $('#doneNew').addEventListener('click', function () {
+    var list = allTexts(), i = list.map(function (t) { return t.id; }).indexOf(R.t.id);
+    var next = list.slice(i + 1).concat(list.slice(0, i)).filter(function (t) { return !(data.texts[t.id] && data.texts[t.id].done); })[0];
+    if (next) { data.cur = next.id; saveData(); }
+    renderTexts(); show('texts');
+  });
+  $('#quit').addEventListener('click', function () { R = null; show('home'); });
+
+  /* ---------- Carnet du parent ---------- */
+  function sessionsList() {
+    var by = {}, out = [];
+    data.hist.forEach(function (h) {
+      var k = h.t + '|' + h.s;
+      if (!by[k]) { by[k] = { t: h.t, s: h.s, d: h.d, m: 0, e: 0, n: 0 }; out.push(by[k]); }
+      by[k].m = Math.max(by[k].m, h.m); by[k].e += h.e; by[k].n++;
+    });
+    return out;
+  }
+  function short(s) { return s.length > 16 ? s.slice(0, 15) + '…' : s; }
+  function frDate(d) { var p = d.split('-'); return p[2] + '/' + p[1]; }
+  function renderParent() {
+    var ss = sessionsList(), seps = [];
+    ss.forEach(function (s, i) { if (i && s.t !== ss[i - 1].t) seps.push(i); });
+    $('#pChart').innerHTML = ss.length ? chart(ss.map(function (s) { return { v: s.m, label: frDate(s.d) }; }), seps, 170) : '<p class="hint">Aucune séance pour l’instant.</p>';
+    var rows = allTexts().filter(function (t) { return textHist(t.id).length; }).map(function (t) {
+      var hs = textHist(t.id), st = tstate(t.id), ms = hs.map(function (h) { return h.m; });
+      return '<tr><td>' + esc(t.titre) + (st.done ? ' 🏆' : '') + '</td><td>' + st.sessions + '</td><td>' + ms[0] + '</td><td>' + Math.max.apply(null, ms) + '</td></tr>';
+    });
+    $('#pTexts').innerHTML = rows.length ? '<tr><th>Texte</th><th>Séances</th><th>Départ</th><th>Record</th></tr>' + rows.join('') : '';
+    var reads = data.hist.slice(-60).reverse().map(function (h) {
+      var t = textById(h.t);
+      return '<tr><td>' + frDate(h.d) + '</td><td>' + esc(t ? short(t.titre) : '?') + '</td><td>S' + h.s + ' L' + h.r + '</td><td>' + h.m + '</td><td>' + h.e + '</td><td>' + h.w + '/' + h.n + '</td><td>' + h.sec + ' s</td></tr>';
+    });
+    $('#pReads').innerHTML = reads.length ? '<tr><th>Date</th><th>Texte</th><th>Lecture</th><th>Mots/min</th><th>Erreurs</th><th>Lus</th><th>Temps</th></tr>' + reads.join('') : '<tr><td class="hint">Aucune lecture.</td></tr>';
+  }
+  $('#pCopy').addEventListener('click', function () {
+    var lines = ['Fluence : meilleure lecture de chaque séance (mots justes par minute)'];
+    sessionsList().forEach(function (s) { var t = textById(s.t); lines.push(frDate(s.d) + ' ; ' + (t ? t.titre : '?') + ' ; séance ' + s.s + ' ; ' + s.m + ' mots/min ; ' + s.e + ' erreurs sur ' + s.n + ' lectures'); });
+    var txt = lines.join('\n'), btn = $('#pCopy');
+    var done = function () { btn.textContent = 'Copié !'; setTimeout(function () { btn.textContent = 'Copier le résumé'; }, 2000); };
+    if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done, function () { window.prompt('Copier :', txt); });
+    else window.prompt('Copier :', txt);
+  });
+  var resetTimer = null;
+  $('#resetBtn').addEventListener('click', function () {
+    var btn = $('#resetBtn');
+    if (!resetTimer) { btn.textContent = 'Toucher encore pour tout effacer'; resetTimer = setTimeout(function () { resetTimer = null; btn.textContent = 'Effacer les progrès'; }, 4000); return; }
+    clearTimeout(resetTimer); resetTimer = null;
+    data = { cur: data.cur, texts: {}, hist: [], days: [] };
+    saveData(); btn.textContent = 'Progrès effacés'; renderParent();
+  });
+
+  show('home');
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  }
+})();
+</script>
+</body>
+</html>
