@@ -24,7 +24,7 @@ Le chrono sert à mesurer, pas à faire la course : l'enfant ne voit pas les sec
 - **Carnet du parent** (en bas de l'accueil) : courbe de toutes les séances, tableau par texte, toutes les lectures, et un bouton pour copier le résumé.
 - S'installe sur l'écran d'accueil et fonctionne hors ligne.
 
-Les progrès restent dans le navigateur de l'appareil (clés `marc.fluence.*`) : aucun compte, et rien n'est envoyé sur internet.
+Les progrès restent dans le navigateur de l'appareil (clés `marc.fluence.*`) : aucun compte, et rien sur les progrès n'est envoyé sur internet. Seul un compteur de visites anonyme (GoatCounter) compte les ouvertures de l'appli : pas de cookie, pas de nom.
 
 ## Fichiers
 
