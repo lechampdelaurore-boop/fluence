@@ -1,6 +1,6 @@
 // Garde le jeu disponible hors ligne.
 // Changer CACHE à chaque mise à jour des fichiers listés ci-dessous.
-var CACHE = 'fluence-v3';
+var CACHE = 'fluence-v4';
 var FILES = [
   './',
   './index.html',
